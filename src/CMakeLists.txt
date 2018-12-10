@@ -1,5 +1,5 @@
 Set (SRCS 
-    Main.cpp )
+    Main.cpp  ReadData.cpp  Util.cpp Math.cpp )
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -DPARALLEL=1 " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 " )

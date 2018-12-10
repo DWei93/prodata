@@ -77,4 +77,21 @@ typedef struct {
         int         optPaired;
 } Option_t;
 
+typedef struct {
+    double  x,y,z;    
+} Point_t;
+
+typedef struct {
+    double  x,y,z;  
+} Line_t;
+
+typedef struct {
+    vector<string>          variables;
+    vector<vector<double> > data;
+} Table_t;
+
+
+
+
+
 #endif 

@@ -25,6 +25,8 @@
 #include <cstring>
 
 #include "Home.h"
+#include "ReadData.h"
+
 using namespace std;
 
 /*
@@ -210,9 +212,12 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     Usage(argv[0]);
                     exit(1);
                 } else {
-                    while(i < argc){
-                        argValue = argv[++i];
+                    vector<string>swap(argValues);
+                    i++;
+                    while(i < argc && argv[i][0] != '-'){
+                        argValue = argv[i++];
                         argValues.push_back(argValue);
+                        if(i >= argc)break;
                         if(argv[i][0] == '-')break;
                     }
                 }
@@ -247,8 +252,10 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 
 main(int argc, char *argv[])
 {
+        int             i, j;
         InArgs_t        inArgs;
 
+        Table_t         table;
 
         InitDefaultValues(&inArgs);
         GetInArgs(argc, argv, &inArgs);
@@ -261,6 +268,19 @@ main(int argc, char *argv[])
  */
         switch (inArgs.type) {
             case FTYPE_AVERAGE_LINES:
+                ReadTecplotNormalData(inArgs.inpFiles[0], table);
+
+                for(j=0; j<table.variables.size(); j++){
+                    printf("%s ", table.variables[j].c_str());
+                }
+                printf("\n");
+
+                for(i=0; i<table.data.size(); i++){
+                    for(j=0; j<table.variables.size(); j++){
+                    printf("%e ", table.data[i][j]);
+                    }
+                    printf("\n");
+                }
 
                 break;
             case FTYPE_PROC_EXTEND_DIS:
