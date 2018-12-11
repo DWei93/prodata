@@ -44,7 +44,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_INPFILE,   "inputfile",  	1, 1},
         {OPT_OUTFILE,   "outfile",  	1, 1},
         {OPT_SEED,      "seed",     	3, 1},
-        {OPT_TYPE,      "type",     	1, 1}
+        {OPT_TYPE,      "type",     	1, 1},
+        {OPT_PRIVATEVALS, "d",          1, 1}
 };
 
 
@@ -169,8 +170,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         int     i, j, k;
         char    *argName;
         char    *token;
+        Var_t   var;
 
-        string              argValue;
+        string              argValue, arg;
         std::vector<string> argValues;
 
         for (i = 1; i < argc; i++) {
@@ -200,6 +202,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 
             if (j == OPT_MAX) {
                 Usage(argv[0]);
+                printf("1\n");
                 exit(1);
             }
 
@@ -209,6 +212,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  */
             if (optList[j].optPaired) {
                 if (i+1 >= argc) {
+                printf("2\n");
                     Usage(argv[0]);
                     exit(1);
                 } else {
@@ -220,9 +224,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         if(i >= argc)break;
                         if(argv[i][0] == '-')break;
                     }
+                    i--;
                 }
             }
-
 /*
  *          Do any option-specific processing...
  */
@@ -242,9 +246,27 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_TYPE:
                     inArgs->type = atoi(argValue.c_str());
                     break;
+                case OPT_PRIVATEVALS:
+                    var.name = argName;
+                    var.name.erase(0,1);
+                    swap(var.vals, argValues);
+                    inArgs->priVars.push_back(var);
+                    break; 
+                default:
+                    break;
             }
 
         }
+        printf("Private vars for type %d:\n", inArgs->type);
+
+        for(i=0; i<inArgs->priVars.size(); i++){
+            printf("%s: ", inArgs->priVars[i].name.c_str());
+            for(j=0; j<inArgs->priVars[i].vals.size(); j++){
+                printf("%s ", inArgs->priVars[i].vals[j].c_str());
+            }
+            printf("\n");
+        }
+        
         return;
 }
 

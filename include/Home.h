@@ -17,6 +17,11 @@
 #define real8 double
 using namespace std;
 
+typedef struct {
+    string          name;
+    vector<string>  vals;
+}Var_t;
+
 /*
  *      Define a structure containing all items corresponding to
  *      all command line options that have associated values.  This
@@ -28,8 +33,8 @@ typedef struct {
         int     seed;
         int     type;
 
-        std::vector<string>      inpFiles;
-        std::vector<string>      outFiles;
+        vector<string>  inpFiles, outFiles;
+        vector<Var_t>   priVars;
 }InArgs_t;
 
 /*
@@ -56,6 +61,7 @@ typedef	enum{
     OPT_OUTFILE,
     OPT_SEED,
     OPT_TYPE,
+    OPT_PRIVATEVALS,
 	OPT_MAX
 }OPT_t;
 
@@ -89,9 +95,6 @@ typedef struct {
     vector<string>          variables;
     vector<vector<double> > data;
 } Table_t;
-
-
-
 
 
 #endif 
