@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include <list>
 
 #define real8 double
 using namespace std;
@@ -34,7 +35,7 @@ typedef struct {
         int     type;
 
         vector<string>  inpFiles, outFiles;
-        vector<Var_t>   priVars;
+        vector<Var_t>     priVars;
 }InArgs_t;
 
 /*

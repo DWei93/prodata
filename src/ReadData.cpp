@@ -26,6 +26,7 @@ int ReadTecplotNormalData(string &file, Table_t &table)
     if(str.empty())Fatal("there is noting in the file %s", file.c_str());
     line = split(str, "=");
     table.variables = split(line[1], ",");
+    for(i=0; i<table.variables.size(); i++)WashString(table.variables[i]);
     col.resize(table.variables.size());
 
     while(getline(infile,str))

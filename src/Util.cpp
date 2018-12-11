@@ -35,6 +35,39 @@ vector<string> split(const string& str, const string& delim)
     return res;
 }
 
+void WashString(string &str)
+{
+    string::iterator it;
+    for (it =str.begin(); it != str.end(); ++it){
+        if ( *it == ' ')str.erase(it);
+    }
+    return;
+}
+
+int  GetValID(const vector<Var_t> &vals, const string &name)
+{
+    vector<string> strs;
+    int             i;
+
+    for(i=0; i<vals.size(); i++){
+        if(vals[i].name == name)break;
+    }
+
+    return(i);    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

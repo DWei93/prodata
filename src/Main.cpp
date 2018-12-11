@@ -25,7 +25,7 @@
 #include <cstring>
 
 #include "Home.h"
-#include "ReadData.h"
+#include "DDD.h"
 
 using namespace std;
 
@@ -257,16 +257,16 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
             }
 
         }
-        printf("Private vars for type %d:\n", inArgs->type);
-
-        for(i=0; i<inArgs->priVars.size(); i++){
-            printf("%s: ", inArgs->priVars[i].name.c_str());
-            for(j=0; j<inArgs->priVars[i].vals.size(); j++){
-                printf("%s ", inArgs->priVars[i].vals[j].c_str());
+        if(inArgs->priVars.size()>0){
+            printf("Private vars for type %d:\n", inArgs->type);
+            for(i=0; i<inArgs->priVars.size(); i++){
+                printf("%s: ", inArgs->priVars[i].name.c_str());
+                for(j=0; j<inArgs->priVars[i].vals.size(); j++){
+                    printf("%s ", inArgs->priVars[i].vals[j].c_str());
+                }
+                printf("\n");
             }
-            printf("\n");
         }
-        
         return;
 }
 
@@ -276,8 +276,6 @@ main(int argc, char *argv[])
 {
         int             i, j;
         InArgs_t        inArgs;
-
-        Table_t         table;
 
         InitDefaultValues(&inArgs);
         GetInArgs(argc, argv, &inArgs);
@@ -290,22 +288,10 @@ main(int argc, char *argv[])
  */
         switch (inArgs.type) {
             case FTYPE_AVERAGE_LINES:
-                ReadTecplotNormalData(inArgs.inpFiles[0], table);
-
-                for(j=0; j<table.variables.size(); j++){
-                    printf("%s ", table.variables[j].c_str());
-                }
-                printf("\n");
-
-                for(i=0; i<table.data.size(); i++){
-                    for(j=0; j<table.variables.size(); j++){
-                    printf("%e ", table.data[i][j]);
-                    }
-                    printf("\n");
-                }
 
                 break;
             case FTYPE_PROC_EXTEND_DIS:
+                HandleExtendedDislocation(&inArgs);
 
                 break;
         }

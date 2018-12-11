@@ -1,5 +1,5 @@
-#ifndef _UTIL_h
-#define _UTIL_h
+#ifndef _DDD_h
+#define _DDD_h
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -19,9 +19,7 @@
 #include <algorithm>
 #include <numeric>
 
-void Fatal(const char *format, ...); 
-vector<string> split(const string& str, const string& delim); 
-void WashString(string &str);
-int  GetValID(const vector<Var_t> &vals, const string &name);
+
+void HandleExtendedDislocation(InArgs_t *inArgs);
 
 #endif
