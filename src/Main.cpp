@@ -216,8 +216,8 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     Usage(argv[0]);
                     exit(1);
                 } else {
-                    vector<string>swap(argValues);
                     i++;
+                    vector<string>().swap(argValues);
                     while(i < argc && argv[i][0] != '-'){
                         argValue = argv[i++];
                         argValues.push_back(argValue);
