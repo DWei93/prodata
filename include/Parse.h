@@ -1,5 +1,5 @@
-#ifndef _READDATA_h
-#define _READDATA_h
+#ifndef _PARSE_h
+#define _PARSE_h
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -19,6 +19,9 @@
 #include <algorithm>
 #include <numeric>
 
+#include <iomanip>
 
+
+vector<string> GetFiles(const string &file);
 
 #endif

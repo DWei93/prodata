@@ -136,10 +136,11 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
 
     xc = 0.5*(min + max);    
     x -= rint((x-xc)/length) * length;
+    
 
     if(x>=curve.ax[0] && x<=curve.ax.back()){
         for(i=1; i<curve.ax.size(); i++){
-            if(x<curve.ax[i])break;
+            if(x<=curve.ax[i])break;
         }
         x0 = curve.ax[i-1];
         y0 = curve.ay[i-1];
@@ -169,7 +170,9 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
         }
     }
 
-    if(x<x0 || x>x1)Fatal("something wrong with linearInterpolation %f, %f, %f", x, x0, x1);
+    if(x<x0 || x>x1)
+        Fatal("something wrong with linearInterpolation %f, %f, %f %f %f",
+              x, x0, x1, min, max);
 
     if(x1-x0 == 1.0E-10){
         return(y0);

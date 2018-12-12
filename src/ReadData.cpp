@@ -19,6 +19,8 @@ int ReadTecplotNormalData(string &file, Table_t &table)
         Fatal("cant not the file %s", file.c_str());
     }
 
+    vector<string>().swap(table.variables);
+    vector<vector<real8> >().swap(table.data);
 /*
  *  Read the first line.
  */

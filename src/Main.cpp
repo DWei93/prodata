@@ -26,6 +26,8 @@
 
 #include "Home.h"
 #include "DDD.h"
+#include "Math.h"
+#include "Parse.h"
 
 using namespace std;
 
@@ -170,8 +172,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         char    *token;
         Var_t   var;
 
-        string              argValue, arg;
-        std::vector<string> argValues;
+        string                  argValue, arg;
+        std::vector<string>     argValues,bakInps;
+        vector<vector<string> > strs;
 
         for (i = 1; i < argc; i++) {
 /*
@@ -253,6 +256,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
             }
 
         }
+        
         if(inArgs->priVars.size()>0){
             printf("Private vars for type %d:\n", inArgs->type);
             for(i=0; i<inArgs->priVars.size(); i++){
@@ -263,12 +267,27 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 printf("\n");
             }
         }
+
+    
+        strs.resize(inArgs->inpFiles.size());
+        for(i=0; i<inArgs->inpFiles.size(); i++){
+            strs[i] = GetFiles(inArgs->inpFiles[i]);
+            for(j=0; j<strs[i].size(); j++){
+                bakInps.push_back(strs[i][j]);
+            }
+        }
+        swap(bakInps, inArgs->inpFiles);
+        
+        printf("Input files are:\n");
+        for(i=0; i<inArgs->inpFiles.size(); i++){
+            printf("%s \n", inArgs->inpFiles[i].c_str());
+        }
         return;
 }
 
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         int             i, j;
         InArgs_t        inArgs;
@@ -284,7 +303,7 @@ main(int argc, char *argv[])
  */
         switch (inArgs.type) {
             case FTYPE_AVERAGE_LINES:
-
+                AverageLines(&inArgs);
                 break;
             case FTYPE_PROC_EXTEND_DIS:
                 HandleExtendedDislocation(&inArgs);

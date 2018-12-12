@@ -144,7 +144,6 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     }
 
     swap(list.data, data);
-    printf("separation is %f\n", separation);
     fileName = inArgs->outFiles[0] + "." + to_string(separation);
     WriteTecplotNormalData(list, fileName, 10);
 

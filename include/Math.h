@@ -20,4 +20,6 @@
 #include <numeric>
 
 
+void AverageLines(InArgs_t *inArgs);
+
 #endif
