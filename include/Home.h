@@ -89,5 +89,9 @@ typedef struct {
     vector<vector<double> > data;
 } Table_t;
 
+typedef struct {
+    vector<string>          variables;
+    vector<vector<double> > data;
+}LineList_t;
 
 #endif 

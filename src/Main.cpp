@@ -89,7 +89,6 @@ static void PrintHelp(char *program)
     printf("    Options may be abbreviated to the shortest non-ambiguous\n");
     printf("\n");
 
-    printf("\n");
  
     exit(0);
 }
@@ -104,7 +103,7 @@ static void PrintHelp(char *program)
  *-------------------------------------------------------------------------*/
 static void InitDefaultValues(InArgs_t *inArgs)
 {
-        inArgs->outFiles.push_back((char*)"output.plt");
+        inArgs->outFiles.push_back((char*)"output");
         inArgs->seed       = time(0) + getpid();
         inArgs->type       = 0;
         	
@@ -142,7 +141,6 @@ static void CheckArgSanity(InArgs_t *inArgs)
  *-------------------------------------------------------------------------*/
 static void PrintArgs(InArgs_t *inArgs)
 {
-        printf("\n");
         return;
 }
 
@@ -202,7 +200,6 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 
             if (j == OPT_MAX) {
                 Usage(argv[0]);
-                printf("1\n");
                 exit(1);
             }
 
@@ -212,7 +209,6 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  */
             if (optList[j].optPaired) {
                 if (i+1 >= argc) {
-                printf("2\n");
                     Usage(argv[0]);
                     exit(1);
                 } else {

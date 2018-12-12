@@ -171,8 +171,11 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
 
     if(x<x0 || x>x1)Fatal("something wrong with linearInterpolation %f, %f, %f", x, x0, x1);
 
-    return(y1+(y1-y0)*(x-x0)/(x1-x0));
-
+    if(x1-x0 == 1.0E-10){
+        return(y0);
+    }else{
+        return(y0+(y1-y0)*(x-x0)/(x1-x0));
+    }
 } 
 
 

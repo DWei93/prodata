@@ -3,7 +3,7 @@
 
 #include "Home.h"
 #include "Util.h"
-#include "ReadData.h"
+#include "ProDataIO.h"
 
 using namespace std;
 
@@ -18,16 +18,27 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     Table_t         table;
     real8           cubel = 20000, boundMin[3], boundMax[3];
     real8           remeshSize = 20.0, burgID1 = 7, burgID2 = 12;
-    int             index,  i;
+    real8           rd, yi1, yj1, yk2, yk3, s;
+    int             index,  i, j, k;
     int             colX, colY, colBurgID;
     string          cubelName = "cubel", burgIDName = "burgID", remeshSizeName = "rsize";  
-
+    string          fileName;
+    real8           separation = 0.0;
     Point_t         p;
     vector<Point_t> points1, points2;
     Curve_t         curve1, curve2;
+    LineList_t      list;
     
     vector<real8>           seq;
-    vector<vector<double> > data(3);  
+    vector<vector<double> > data(7);  
+
+    list.variables.push_back("x");
+    list.variables.push_back("y1");
+    list.variables.push_back("y2");
+    list.variables.push_back("y");
+    list.variables.push_back("Rd1");
+    list.variables.push_back("Rd2");
+    list.variables.push_back("Rd");
 
     if((index = GetValID(inArgs->priVars, cubelName)) < inArgs->priVars.size()){
         cubel = stof(inArgs->priVars[index].vals[0]);
@@ -99,17 +110,43 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     }
 
     seq = GenerateSequence(boundMin[0], boundMax[0], remeshSize);
+
     data[0].assign(seq.begin(), seq.end());
+    for(i=1; i<data.size(); i++) data[i].resize(data[0].size());
     
     for(i=0; i<seq.size(); i++){
-        data[1].push_back(LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]));
-        data[2].push_back(LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]));
+        data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
+        data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
+        data[3][i] = 0.5 * (data[1][i] + data[2][i]);
+        separation += fabs(data[1][i] - data[2][i]);  
+    }
+    separation /= ((double)seq.size());
+
+    for(i=0; i<seq.size(); i++){
+        data[4][i] = 0.0;
+        data[5][i] = 0.0;
+        data[6][i] = 0.0;
     }
 
-    printf("variables = x, y1, y2\n");
     for(i=0; i<seq.size(); i++){
-        printf("%f %f %f \n", data[0][i], data[1][i], data[2][i]);
+        for(j=i; j<i+seq.size(); j++){
+            k = (j < seq.size()) ? j : j-seq.size();
+            data[4][j-i] += fabs(data[1][k] - data[1][i]);
+            data[5][j-i] += fabs(data[2][k] - data[2][i]);
+            data[6][j-i] += fabs(data[3][k] - data[3][i]);
+        }
     }
+
+    for(i=0; i<seq.size(); i++){
+        data[4][i] /= ((double)seq.size());
+        data[5][i] /= ((double)seq.size());
+        data[6][i] /= ((double)seq.size());
+    }
+
+    swap(list.data, data);
+    printf("separation is %f\n", separation);
+    fileName = inArgs->outFiles[0] + "." + to_string(separation);
+    WriteTecplotNormalData(list, fileName, 10);
 
     return;
 }

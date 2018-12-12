@@ -1,5 +1,5 @@
-#ifndef _READDATA_h
-#define _READDATA_h
+#ifndef _PRODATAIO_h
+#define _PRODATAID_h
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -19,6 +19,11 @@
 #include <algorithm>
 #include <numeric>
 
+#include <iomanip>
 
+
+int     ReadTecplotNormalData(string &file, Table_t &table);
+void    WriteTecplotNormalData(const LineList_t &list, const string &file,
+                               double precision = 6);
 
 #endif

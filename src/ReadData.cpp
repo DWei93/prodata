@@ -1,7 +1,7 @@
 
 #include "Home.h"
 #include "Util.h"
-#include "ReadData.h"
+#include "ProDataIO.h"
 
 using namespace std;
 
@@ -29,12 +29,6 @@ int ReadTecplotNormalData(string &file, Table_t &table)
     for(i=0; i<table.variables.size(); i++)WashString(table.variables[i]);
     col.resize(table.variables.size());
 
-    printf("Read in %s, variables are ", file.c_str());
-    for(i=0; i<table.variables.size(); i++){
-        printf("%s ", table.variables[i].c_str());
-    }
-    printf("\n");
-
     j = 0;
     while(getline(infile,str))
     {   
@@ -48,6 +42,7 @@ int ReadTecplotNormalData(string &file, Table_t &table)
         table.data.push_back(col);
         j++;
     }
-    printf("%d lines has been read.\n", j);
+    infile.close();
+    printf("Finsish reading input file %s\n", file.c_str());    
     return 1;            
 }
