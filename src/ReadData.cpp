@@ -7,7 +7,7 @@ using namespace std;
 
 int ReadTecplotNormalData(string &file, Table_t &table)
 {
-    int         lineNo = 1, i;
+    int         lineNo = 1, i, j;
     string      str;
     ifstream    infile;
 
@@ -29,6 +29,13 @@ int ReadTecplotNormalData(string &file, Table_t &table)
     for(i=0; i<table.variables.size(); i++)WashString(table.variables[i]);
     col.resize(table.variables.size());
 
+    printf("Read in %s, variables are ", file.c_str());
+    for(i=0; i<table.variables.size(); i++){
+        printf("%s ", table.variables[i].c_str());
+    }
+    printf("\n");
+
+    j = 0;
     while(getline(infile,str))
     {   
         lineNo++;
@@ -38,8 +45,9 @@ int ReadTecplotNormalData(string &file, Table_t &table)
         for(i=0; i<col.size(); i++){
             col[i] = atof(line[i].c_str());
         }
-
         table.data.push_back(col);
+        j++;
     }
+    printf("%d lines has been read.\n", j);
     return 1;            
 }
