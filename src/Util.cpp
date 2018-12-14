@@ -122,7 +122,7 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
     int     i;    
 
     if(curve.ax.size()<2)
-        Fatal("there is no engough data for interpolation");
+        Fatal("there is no enough data for interpolation");
     if(curve.ax[0] == curve.ax.back())
         Fatal("the range of line is zero in LineInterpolation");
 

@@ -84,10 +84,9 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
 
         if(burgID1 == table.data[i][colBurgID]){
             points1.push_back(p);
-        }else if(burgID2 == table.data[i][colBurgID]){
+        }
+        if(burgID2 == table.data[i][colBurgID]){
             points2.push_back(p);
-        }else{
-            continue;
         }
     }
 
