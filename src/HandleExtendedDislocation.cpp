@@ -4,6 +4,7 @@
 #include "Home.h"
 #include "Util.h"
 #include "ProDataIO.h"
+#include "DDD.h"
 
 using namespace std;
 
@@ -41,7 +42,7 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     list.variables.push_back("Rd");
 
     if((index = GetValID(inArgs->priVars, cubelName)) < inArgs->priVars.size()){
-        cubel = stof(inArgs->priVars[index].vals[0]);
+        cubel = atof(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The cubel size is %f\n", cubel);
     
@@ -55,14 +56,14 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
 
     if((index = GetValID(inArgs->priVars, burgIDName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 2){
-            burgID1 = stoi(inArgs->priVars[index].vals[0]);
-            burgID2 = stoi(inArgs->priVars[index].vals[1]);
+            burgID1 = atoi(inArgs->priVars[index].vals[0].c_str());
+            burgID2 = atoi(inArgs->priVars[index].vals[1].c_str());
         }
     }
     printf("The burgID of two partials are %2.0f %2.0f\n", burgID1, burgID2);
 
     if((index = GetValID(inArgs->priVars, remeshSizeName)) < inArgs->priVars.size()){
-        remeshSize = stof(inArgs->priVars[index].vals[0]);
+        remeshSize = atof(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The remesh size is %f\n", remeshSize);
 
@@ -144,7 +145,7 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     }
 
     swap(list.data, data);
-    fileName = inArgs->outFiles[0] + "." + to_string(separation);
+    fileName = inArgs->outFiles[0];
     WriteTecplotNormalData(list, fileName, 10);
 
     return;

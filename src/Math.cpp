@@ -1,9 +1,12 @@
-
+#include <sstream>
 #include "Home.h"
 #include "Util.h"
 
 #include "ProDataIO.h"
 #include "Parse.h"
+#include "Math.h"
+
+using namespace std;
 
 void AverageLines(InArgs_t *inArgs)
 {
@@ -21,7 +24,7 @@ void AverageLines(InArgs_t *inArgs)
     vector<string>      s1, s2;
 
     if((index = GetValID(inArgs->priVars, rsizeName)) < inArgs->priVars.size()){
-        rsize = stof(inArgs->priVars[index].vals[0]);
+        rsize = atof(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The remesh size (rsize) is %f\n", rsize);
 
@@ -35,7 +38,7 @@ void AverageLines(InArgs_t *inArgs)
     printf("The variables (vars) are %s %s\n", xName.c_str(), yName.c_str());
 
     if((index = GetValID(inArgs->priVars, recordName)) < inArgs->priVars.size()){
-        record = stoi(inArgs->priVars[index].vals[0]);
+        record = atoi(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The Record (record) state is %d\n", record);
 

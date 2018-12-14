@@ -21,7 +21,7 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
         fn += ".plt";
     }
 
-    out.open(fn, ios::out);
+    out.open(fn.c_str(), ios::out);
 
     out << "variables = "; 
     for(i=0; i<list.variables.size(); i++){
