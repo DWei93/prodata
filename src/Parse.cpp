@@ -14,14 +14,14 @@ vector<string> GetFiles(const string &file)
 {
     int     iPos;
     DIR     *dir;
-    char    basePath[256];
+    char    basePath[256], *getcwdReturn;
 
     struct dirent   *ptr;
     string          f(file), fdir, fname, dname, bpath;
     vector<string>  strs;
     
     memset(basePath, '\0', sizeof(basePath));
-    getcwd(basePath, 999);
+    getcwdReturn = getcwd(basePath, sizeof(basePath));
     bpath = basePath;
 
     iPos = f.find_last_of('/');

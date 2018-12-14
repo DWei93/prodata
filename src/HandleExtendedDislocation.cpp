@@ -138,6 +138,7 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     }
 
     for(i=0; i<seq.size(); i++){
+        data[0][i] += 0.5*cubel;
         data[4][i] /= ((double)seq.size());
         data[5][i] /= ((double)seq.size());
         data[6][i] /= ((double)seq.size());
