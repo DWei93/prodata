@@ -11,5 +11,5 @@ add_definitions( -DPARALLEL=1)
 INCLUDE_DIRECTORIES(../include)    
 target_link_libraries(prodata m pthread)
 Install(TARGETS prodata
-        RUNTIME DESTINATION $ENV{HOME}/bin)
+        RUNTIME DESTINATION bin)
 
