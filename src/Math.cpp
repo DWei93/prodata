@@ -14,7 +14,7 @@ void AverageLines(InArgs_t *inArgs)
     int     record = 0;
     real8   rsize = 20, min, max;
     string  rsizeName("rsize"), varsName("vars"), recordName("record");
-    string  xName("X"), yName("Y"), str("Ave_"); 
+    string  xName("X"), yName("Y"), str("Ave_"), secLine; 
 
     LineList_t  list;
     Curve_t     curve;
@@ -43,7 +43,7 @@ void AverageLines(InArgs_t *inArgs)
     printf("The Record (record) state is %d\n", record);
 
     for(i=0; i<inArgs->inpFiles.size(); i++){
-        ReadTecplotNormalData(inArgs->inpFiles[i], tables[i]);
+        ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(i == 0){
             colX = GetColIDFromTable(tables[i], xName);
             colY = GetColIDFromTable(tables[i], yName);

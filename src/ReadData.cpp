@@ -5,7 +5,7 @@
 
 using namespace std;
 
-int ReadTecplotNormalData(string &file, Table_t &table)
+int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 {
     int         lineNo = 1, i, j;
     string      str;
@@ -36,6 +36,7 @@ int ReadTecplotNormalData(string &file, Table_t &table)
     {   
         lineNo++;
         line = split(str, " ");
+        if(lineNo == 2)secLine = str;
        
         if(line.size() != table.variables.size())continue; 
         for(i=0; i<col.size(); i++){

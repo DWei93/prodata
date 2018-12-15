@@ -10,7 +10,6 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
     int     i, j;
     string  fn(file), plt(".plt");
 
-    ofstream out;
 
     if(fn.length() > 4){
         int loc = fn.find(plt, fn.length()-5); 
@@ -21,6 +20,7 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
         fn += ".plt";
     }
 
+    ofstream out;
     out.open(fn.c_str(), ios::out);
 
     out << "variables = "; 

@@ -20,16 +20,17 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     real8           cubel = 20000, boundMin[3], boundMax[3];
     real8           remeshSize = 20.0, burgID1 = 7, burgID2 = 12;
     real8           rd, yi1, yj1, yk2, yk3, s;
-    int             index,  i, j, k;
+    int             index,  i, j, k, file, iPos;
     int             colX, colY, colBurgID;
     string          cubelName = "cubel", burgIDName = "burgID", remeshSizeName = "rsize";  
-    string          fileName;
-    real8           separation = 0.0;
+    string          fileName, secLine, fdir, curDir("./"), fname, aveFile;
+    real8           separation = 0.0, position = 0.0;
     Point_t         p;
     vector<Point_t> points1, points2;
     Curve_t         curve1, curve2;
     LineList_t      list;
     
+    vector<string>          words;
     vector<real8>           seq;
     vector<vector<double> > data(7);  
 
@@ -45,6 +46,15 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
         cubel = atof(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The cubel size is %f\n", cubel);
+
+    if(inArgs->outFiles.size() < 2){
+        aveFile = "Ave.plt";
+    }else{
+        aveFile = inArgs->outFiles[1];
+    }
+    ofstream out;
+    out.open(aveFile.c_str(), ios::out);
+    out << "variables = timeNow, separation, position" << endl;
     
     boundMin[0] = -0.5*cubel;
     boundMin[1] = -0.5*cubel;
@@ -67,86 +77,121 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
     }
     printf("The remesh size is %f\n", remeshSize);
 
-    ReadTecplotNormalData(inArgs->inpFiles[0], table);
+    for(file=0; file<inArgs->inpFiles.size(); file++){
 
-    if(table.data.size() < 2)Fatal("the data size is %d", table.data.size());
+        vector<string>().swap(table.variables);
 
-    colX = GetColIDFromTable(table, "X");
-    colY = GetColIDFromTable(table, "Y");
-    colBurgID = GetColIDFromTable(table, "burgID");
+        ReadTecplotNormalData(inArgs->inpFiles[file], table, secLine);
+        vector<string>().swap(words);
+        words = split(secLine, "\"");
+ 
+        if(table.data.size() < 2)Fatal("the data size is %d", table.data.size());
+ 
+        colX = GetColIDFromTable(table, "X");
+        colY = GetColIDFromTable(table, "Y");
+        colBurgID = GetColIDFromTable(table, "burgID");
+            
+        vector<Point_t>().swap(points1);
+        vector<Point_t>().swap(points2);
+        p.x = 1.0E10; p.y = 1.0E10;
+        for(i=0; i<table.data.size(); i++){
+            if(p.x == table.data[i][colX] &&
+               p.y == table.data[i][colY])continue;
+ 
+            p.x = table.data[i][colX];
+            p.y = table.data[i][colY];
+ 
+            if(burgID1 == table.data[i][colBurgID]){
+                points1.push_back(p);
+            }
+            if(burgID2 == table.data[i][colBurgID]){
+                points2.push_back(p);
+            }
+        }
+ 
+        sort(points1.begin(), points1.end(), cmp); 
+        sort(points2.begin(), points2.end(), cmp); 
+ 
+        curve1.ax.resize(points1.size());
+        curve1.ay.resize(points1.size());
+        curve2.ax.resize(points2.size());
+        curve2.ay.resize(points2.size());
+ 
+        for(i=0; i<points1.size(); i++){
+            curve1.ax[i] = points1[i].x;
+            curve1.ay[i] = points1[i].y;
+        }
+ 
+        for(i=0; i<points2.size(); i++){
+            curve2.ax[i] = points2[i].x;
+            curve2.ay[i] = points2[i].y;
+        }
+ 
+        vector<double>().swap(seq);
+        seq = GenerateSequence(boundMin[0], boundMax[0], remeshSize);
+ 
+        data.resize(7);
+        for(i=0; i<data.size(); i++) data[i].resize(seq.size());
+        for(i=0; i<seq.size(); i++){
+            data[0][i] = seq[i];
+        }
         
-    p.x = 1.0E10; p.y = 1.0E10;
-    for(i=0; i<table.data.size(); i++){
-        if(p.x == table.data[i][colX] &&
-           p.y == table.data[i][colY])continue;
-
-        p.x = table.data[i][colX];
-        p.y = table.data[i][colY];
-
-        if(burgID1 == table.data[i][colBurgID]){
-            points1.push_back(p);
+        separation = 0.0;
+        position = 0.0;
+        for(i=0; i<seq.size(); i++){
+            data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
+            data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
+            data[3][i] = 0.5 * (data[1][i] + data[2][i]);
+            separation += fabs(data[1][i] - data[2][i]);  
+            position += data[3][i];
         }
-        if(burgID2 == table.data[i][colBurgID]){
-            points2.push_back(p);
+        separation /= ((double)seq.size());
+        position /= ((double)seq.size());
+ 
+        for(i=0; i<seq.size(); i++){
+            data[4][i] = 0.0;
+            data[5][i] = 0.0;
+            data[6][i] = 0.0;
         }
-    }
-
-    sort(points1.begin(), points1.end(), cmp); 
-    sort(points2.begin(), points2.end(), cmp); 
-
-    curve1.ax.resize(points1.size());
-    curve1.ay.resize(points1.size());
-    curve2.ax.resize(points2.size());
-    curve2.ay.resize(points2.size());
-
-    for(i=0; i<points1.size(); i++){
-        curve1.ax[i] = points1[i].x;
-        curve1.ay[i] = points1[i].y;
-    }
-
-    for(i=0; i<points2.size(); i++){
-        curve2.ax[i] = points2[i].x;
-        curve2.ay[i] = points2[i].y;
-    }
-
-    seq = GenerateSequence(boundMin[0], boundMax[0], remeshSize);
-
-    data[0].assign(seq.begin(), seq.end());
-    for(i=1; i<data.size(); i++) data[i].resize(data[0].size());
-    
-    for(i=0; i<seq.size(); i++){
-        data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
-        data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
-        data[3][i] = 0.5 * (data[1][i] + data[2][i]);
-        separation += fabs(data[1][i] - data[2][i]);  
-    }
-    separation /= ((double)seq.size());
-
-    for(i=0; i<seq.size(); i++){
-        data[4][i] = 0.0;
-        data[5][i] = 0.0;
-        data[6][i] = 0.0;
-    }
-
-    for(i=0; i<seq.size(); i++){
-        for(j=i; j<i+seq.size(); j++){
-            k = (j < seq.size()) ? j : j-seq.size();
-            data[4][j-i] += fabs(data[1][k] - data[1][i]);
-            data[5][j-i] += fabs(data[2][k] - data[2][i]);
-            data[6][j-i] += fabs(data[3][k] - data[3][i]);
+ 
+        for(i=0; i<seq.size(); i++){
+            for(j=i; j<i+seq.size(); j++){
+                k = (j < seq.size()) ? j : j-seq.size();
+                data[4][j-i] += fabs(data[1][k] - data[1][i]);
+                data[5][j-i] += fabs(data[2][k] - data[2][i]);
+                data[6][j-i] += fabs(data[3][k] - data[3][i]);
+            }
         }
-    }
+ 
+        for(i=0; i<seq.size(); i++){
+            data[0][i] += 0.5*cubel;
+            data[4][i] /= ((double)seq.size());
+            data[5][i] /= ((double)seq.size());
+            data[6][i] /= ((double)seq.size());
+        }
+ 
+        swap(list.data, data);
+        fileName = inArgs->outFiles[0];
 
-    for(i=0; i<seq.size(); i++){
-        data[0][i] += 0.5*cubel;
-        data[4][i] /= ((double)seq.size());
-        data[5][i] /= ((double)seq.size());
-        data[6][i] /= ((double)seq.size());
-    }
+        iPos = inArgs->inpFiles[file].find_last_of('/');
+        if(iPos == string::npos){
+            fdir = curDir;
+            fname = inArgs->inpFiles[file];
+        }else{
+            fdir = curDir + inArgs->inpFiles[file].substr(0,iPos);
+            fname = inArgs->inpFiles[file].substr(iPos+1);
+        }
 
-    swap(list.data, data);
-    fileName = inArgs->outFiles[0];
-    WriteTecplotNormalData(list, fileName, 10);
+        fileName += "-";
+        fileName += fname;
+
+        WriteTecplotNormalData(list, fileName, 10);
+        vector<vector<double> >().swap(list.data);
+
+        out << words[1] << " "; 
+        out <<  setprecision(10)  << separation << " ";
+        out <<  setprecision(10)  << position << endl;
+    }
 
     return;
 }

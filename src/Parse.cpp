@@ -17,19 +17,19 @@ vector<string> GetFiles(const string &file)
     char    basePath[256], *getcwdReturn;
 
     struct dirent   *ptr;
-    string          f(file), fdir, fname, dname, bpath;
+    string          f(file), fdir, fname, dname, bpath, curDir("./");
     vector<string>  strs;
     
     memset(basePath, '\0', sizeof(basePath));
     getcwdReturn = getcwd(basePath, sizeof(basePath));
-    bpath = basePath;
+//    bpath = basePath;
 
     iPos = f.find_last_of('/');
     if(iPos == string::npos){
-        fdir = bpath;
+        fdir = curDir;
         fname = f;
     }else{
-        fdir = bpath + '/' + f.substr(0,iPos);
+        fdir = curDir + f.substr(0,iPos);
         fname = f.substr(iPos+1);
     }
 

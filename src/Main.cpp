@@ -278,6 +278,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         }
         swap(bakInps, inArgs->inpFiles);
         
+        sort(inArgs->inpFiles.begin(), inArgs->inpFiles.end());
         printf("Input files are:\n");
         for(i=0; i<inArgs->inpFiles.size(); i++){
             printf("%s \n", inArgs->inpFiles[i].c_str());
