@@ -26,6 +26,7 @@
 
 #include "Home.h"
 #include "DDD.h"
+#include "MD.h"
 #include "Math.h"
 #include "Parse.h"
 
@@ -42,12 +43,13 @@ using namespace std;
  */
 
 Option_t optList[OPT_MAX] = {
-        {OPT_HELP,      "help",     	1, 0},
-        {OPT_INPFILE,   "inputfile",  	1, 1},
-        {OPT_OUTFILE,   "outfile",  	1, 1},
-        {OPT_SEED,      "seed",     	3, 1},
-        {OPT_TYPE,      "type",     	1, 1},
-        {OPT_PRIVATEVALS, "d",          1, 1}
+        {OPT_HELP,          "help",     	1, 0},
+        {OPT_INPFILE,       "inputfile",  	1, 1},
+        {OPT_OUTFILE,       "outfile",  	1, 1},
+        {OPT_SEED,          "seed",     	3, 1},
+        {OPT_TYPE,          "type",     	1, 1},
+        {OPT_PRIVATEVALS,   "d",            1, 1},
+        {OPT_AUXFILE,       "auxfile",      3, 1}     
 };
 
 
@@ -251,6 +253,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     swap(var.vals, argValues);
                     inArgs->priVars.push_back(var);
                     break; 
+                case OPT_AUXFILE:
+                    swap(inArgs->auxFiles, argValues);
+                    break;
                 default:
                     break;
             }
@@ -277,11 +282,32 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
             }
         }
         swap(bakInps, inArgs->inpFiles);
-        
-        printf("Input files are:\n");
-        for(i=0; i<inArgs->inpFiles.size(); i++){
-            printf("%s \n", inArgs->inpFiles[i].c_str());
+        if(inArgs->inpFiles.size()>1){
+            printf("Input files are:\n");
+            for(i=0; i<inArgs->inpFiles.size(); i++){
+                printf("%s \n", inArgs->inpFiles[i].c_str());
+            }
         }
+    
+        if(inArgs->auxFiles.size()>0){
+            strs.resize(inArgs->auxFiles.size());
+            vector<string>().swap(bakInps);
+            for(i=0; i<inArgs->auxFiles.size(); i++){
+                vector<string>().swap(strs[i]);
+                strs[i] = GetFiles(inArgs->auxFiles[i]);
+                for(j=0; j<strs[i].size(); j++){
+                    bakInps.push_back(strs[i][j]);
+                }
+            }
+            swap(bakInps, inArgs->auxFiles);
+        }
+        if(inArgs->auxFiles.size() > 0){
+            printf("Auxiliary file(s) :\n");
+            for(i=0; i<inArgs->auxFiles.size(); i++){
+                printf("%s \n", inArgs->auxFiles[i].c_str());
+            }
+        }
+
         return;
 }
 
@@ -305,9 +331,11 @@ int main(int argc, char *argv[])
             case FTYPE_AVERAGE_LINES:
                 AverageLines(&inArgs);
                 break;
-            case FTYPE_PROC_EXTEND_DIS:
-                HandleExtendedDislocation(&inArgs);
-
+            case FTYPE_PROC_EXTEND_DIS_DDD:
+                HandleExtendedDislocation_DDD(&inArgs);
+                break;
+            case FTYPE_PROC_EXTEND_DIS_MD:
+                HandleExtendedDislocation_MD(&inArgs);
                 break;
         }
 

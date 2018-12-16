@@ -35,6 +35,8 @@ typedef struct {
         int     type;
 
         vector<string>  inpFiles, outFiles;
+        vector<string>  auxFiles;
+    
         vector<Var_t>     priVars;
 }InArgs_t;
 
@@ -63,12 +65,14 @@ typedef	enum{
     OPT_SEED,
     OPT_TYPE,
     OPT_PRIVATEVALS,
+    OPT_AUXFILE,
 	OPT_MAX
 }OPT_t;
 
 typedef	enum{
 	FTYPE_AVERAGE_LINES = 0,
-    FTYPE_PROC_EXTEND_DIS,
+    FTYPE_PROC_EXTEND_DIS_DDD,
+    FTYPE_PROC_EXTEND_DIS_MD,
 	FTYPE_MAX
 }FTYPE_t;
 
@@ -93,5 +97,6 @@ typedef struct {
     vector<string>          variables;
     vector<vector<double> > data;
 }LineList_t;
+
 
 #endif 

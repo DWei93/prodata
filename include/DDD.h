@@ -20,6 +20,6 @@
 #include <numeric>
 
 
-void HandleExtendedDislocation(InArgs_t *inArgs);
+void HandleExtendedDislocation_DDD(InArgs_t *inArgs);
 
 #endif

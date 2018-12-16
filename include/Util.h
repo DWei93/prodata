@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include "MD.h"
+
 
 typedef struct {
     double  x,y,z;    
@@ -36,5 +38,8 @@ int GetColIDFromTable(const Table_t &table, const string &name);
 vector<double>  GenerateSequence(double from, double to, double meshSize);
 void FoldBox(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z);
 real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min = -1, real8 max = -1);
+void SwapTable(Table_t &table);
+void SwapLineList(LineList_t &list);
+void CleanMgData(MgData_t &mg);
 
 #endif

@@ -20,10 +20,13 @@
 #include <numeric>
 
 #include <iomanip>
+#include "MD.h"
 
 
 int     ReadTecplotNormalData(string &file, Table_t &table);
 void    WriteTecplotNormalData(const LineList_t &list, const string &file,
                                double precision = 6);
+int ReadMGDataFile(const string &file, MgData_t &mgdata);
+int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list);
 
 #endif
