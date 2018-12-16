@@ -193,6 +193,7 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
         out <<  setprecision(10)  << position << endl;
     }
 
+    out.close();
     return;
 }
 
