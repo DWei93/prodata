@@ -23,7 +23,7 @@
 #include "MD.h"
 
 
-int     ReadTecplotNormalData(string &file, Table_t &table);
+int ReadTecplotNormalData(string &file, Table_t &table, string &secLine);
 void    WriteTecplotNormalData(const LineList_t &list, const string &file,
                                double precision = 6);
 int ReadMGDataFile(const string &file, MgData_t &mgdata);
