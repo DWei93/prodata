@@ -41,5 +41,5 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min = -1, real8 m
 void SwapTable(Table_t &table);
 void SwapLineList(LineList_t &list);
 void CleanMgData(MgData_t &mg);
-
+void NormalizeVec(real8 vec[3]);
 #endif

@@ -197,17 +197,32 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     return;
 }
 
+typedef struct {
+    real8               x,y,z;
+    vector<Atom_t *>    nbr;
+}Probe_t;
 
 bool com(Atom_t p, Atom_t q){
-    return(p.y < q.y);
+    if(fabs(p.y - q.y) < 0.1){
+        if(fabs(p.z - q.z)< 0.1){
+            return(p.x<q.x);
+        }else{
+            return(p.z < q.z);
+        }
+    }else{
+        return(p.y < q.y);
+    }
 }
 void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 {
-    int         i, j, file, index;
+    int         i, j, file, index, lastIndex, firstNbr, indexVar;
     double      cutofflen = 2.556;
     MgData_t    mg;
     LineList_t  list;
-    string      cutoffName("cutoff"), dvarName("dvar"), dvar("c_vcna");
+    double      dir[3] = {0, 1, 0}, p0[3], dval=5; 
+    string      cutoffName("cutoff"), dvarName("dvar"), dvar("c_vcna"), p0Name("p0"), dirName("dir");
+
+    vector<Atom_t>::iterator     it; 
 
     if((index = GetValID(inArgs->priVars, cutoffName)) < inArgs->priVars.size()){
         cutofflen = atof(inArgs->priVars[index].vals[0].c_str());
@@ -216,18 +231,45 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 
     if((index = GetValID(inArgs->priVars, dvarName)) < inArgs->priVars.size()){
         dvar = inArgs->priVars[index].vals[0];
+        if(inArgs->priVars[index].vals.size() == 2){
+            dval = atof(inArgs->priVars[index].vals[1].c_str());
+        }
     }
-    printf("The determined var (dvar) is %s\n", dvar.c_str());
+    printf("The determined var (dvar) is %s, value is %f\n", dvar.c_str(), dval);
+
+    if((index = GetValID(inArgs->priVars, p0Name)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size() != 3){
+            Fatal("You have to determine the initial point by  -dp0 x y z");
+        }
+        p0[0] = atof(inArgs->priVars[index].vals[0].c_str());
+        p0[1] = atof(inArgs->priVars[index].vals[1].c_str());
+        p0[2] = atof(inArgs->priVars[index].vals[2].c_str());
+    }else{
+        Fatal("You have to determine the initial point by  -dp0 x y z");
+        
+    }
+    printf("The initial probe point (p0) is %f %f %f\n", p0[0], p0[1], p0[2]);
+
+    if((index = GetValID(inArgs->priVars, dirName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size() != 3){
+            Fatal("at least 3 vals for %s", dirName.c_str());
+        }
+        dir[0] = atof(inArgs->priVars[index].vals[0].c_str());
+        dir[1] = atof(inArgs->priVars[index].vals[1].c_str());
+        dir[2] = atof(inArgs->priVars[index].vals[2].c_str());
+        NormalizeVec(dir);
+    }
+    printf("The direction of probe moving is along %f, %f, %f\n", dir[0], dir[1], dir[2]);
 
     ReadDataFromMDLogFile(inArgs->auxFiles, list);
 
     for(file=0; file<inArgs->inpFiles.size(); file++){
+        printf("1\n");
         ReadMGDataFile(inArgs->inpFiles[file], mg);
-        sort(mg.atom.begin(), mg.atom.end(), com);
-    
-#if 0
+        printf("2\n");
+
         printf("Timestep %d, Atoms %d, Bouds %s %s %s, ", 
-               mg.timestep, mg.atoms, mg.bounds[0].c_str(), 
+               mg.timestep, (int)mg.atom.size(), mg.bounds[0].c_str(), 
                mg.bounds[1].c_str(), mg.bounds[2].c_str());
         printf("Box %e %e %e %e %e %e\n", mg.box[0], mg.box[1],
                mg.box[2], mg.box[3], mg.box[4], mg.box[5]);
@@ -237,6 +279,112 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
             printf("%s(%d) ", mg.variables[i].c_str(), (int)mg.atom.size());
         }
         printf("\n");
+
+        for(i=0; i<mg.variables.size(); i++){
+            if(dvar == mg.variables[i])break;
+        }
+        if((i=indexVar) == mg.variables.size()){
+            Fatal("There is no %s in the mg file %s", dvar.c_str(), 
+                    inArgs->inpFiles[file].c_str());
+        }
+        
+        printf("2.1 %d\n", indexVar);
+        for(it = mg.atom.end(), i=mg.atom.size()-1; it != mg.atom.begin(); it--, i--){
+        printf("2.1.0 %f %f %f %d\n", (*it).x, (*it).y, (*it).z, (int)mg.atom[i].vars.size());
+            if((*it).x < mg.box[0] + (mg.box[1]-mg.box[0])*0.05 ||
+               (*it).y < mg.box[2] + (mg.box[3]-mg.box[2])*0.05 ||
+               (*it).z < mg.box[4] + (mg.box[5]-mg.box[4])*0.05 ||
+               (*it).x > mg.box[0] + (mg.box[1]-mg.box[0])*0.95 ||
+               (*it).y > mg.box[2] + (mg.box[3]-mg.box[2])*0.95 ||
+               (*it).z > mg.box[4] + (mg.box[5]-mg.box[4])*0.95){
+        
+        printf("2.1.00 %f\n", dval);
+                if(mg.atom[i].vars[indexVar] == dval){
+        printf("2.1.1 %f\n", dval);
+//                    vector<double>().swap(mg.atom[i].vars);
+        printf("2.1.2\n");
+                    mg.atom.erase(it); 
+        printf("2.1.3\n");
+                }
+            }
+        }
+
+        printf("3\n");
+        sort(mg.atom.begin(), mg.atom.end(), com);
+        printf("4 %d\n", mg.atom.size());
+
+        for(i=0; i<mg.atom.size(); i++){
+            if(mg.atom[i].vars.size()!=3){
+                Fatal("%d i vars size 0");
+            }
+        }
+
+        vector<Probe_t> probes;
+        Probe_t         probe;
+        double          d = 0.0;
+
+        probe.y = p0[1];
+        probe.z = p0[2];
+
+        lastIndex = 0;
+        while(1){
+        printf("4.1\n");
+            vector<Atom_t *>().swap(probe.nbr);
+            probe.x += (dir[0]*d*cutofflen*0.8);
+            probe.y += (dir[1]*d*cutofflen*0.8);
+            probe.z += (dir[2]*d*cutofflen*0.8);
+            
+            firstNbr = 1;
+        printf("4.2 %d\n", (int)mg.atom.size());
+            for(i=lastIndex; i<mg.atom.size(); i++){
+        printf("4.3.1 %d, %d, %d\n", i, indexVar, (int)mg.atom[i].vars.size());
+                if((pow((mg.atom[i].y-probe.y), 2) + 
+                   pow((mg.atom[i].z-probe.z), 2) < cutofflen*cutofflen)
+                   && mg.atom[i].vars[indexVar] == dval){
+        printf("4.3.1.1 %d\n", i);
+                    if(firstNbr){
+                        lastIndex = i;
+                        firstNbr = 0;
+                    }
+                    probe.nbr.push_back(&mg.atom[i]);
+        printf("4.3.1.2 %d\n", i);
+                }
+        printf("4.3.2 %d\n", i);
+            }
+        printf("4.4\n");
+            if(probe.nbr.size()>0){
+        printf("4.5.1\n");
+                probes.push_back(probe);
+        printf("4.5.2\n");
+                vector<Atom_t *>().swap(probe.nbr);
+        printf("4.5.3\n");
+            }
+        printf("4.6\n");
+            if(probe.y > mg.atom.back().y ||
+               probe.z > mg.atom.back().z)break;
+            d++;
+        }
+
+        printf("probes:\n");
+        for(i=0; i<probes.size(); i++){
+            probes[i].x = 0.0;
+            probes[i].y = 0.0;
+            probes[i].z = 0.0;
+            for(j=0; j<probes[i].nbr.size(); j++){
+                probes[i].x += probes[i].nbr[j]->x;
+                probes[i].y += probes[i].nbr[j]->y;
+                probes[i].z += probes[i].nbr[j]->z;
+            }
+            probes[i].x /= (double)probes[i].nbr.size();
+            probes[i].y /= (double)probes[i].nbr.size();
+            probes[i].z /= (double)probes[i].nbr.size();
+
+            printf("probe %d, (%f,%f,%f) has nbr %d\n", i, probes[i].x, probes[i].y,
+                   probes[i].z, (int)probes[i].nbr.size());
+        }
+
+        
+#if 0
 #endif
 
     }
