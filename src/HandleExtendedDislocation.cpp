@@ -5,6 +5,7 @@
 #include "Util.h"
 #include "ProDataIO.h"
 #include "DDD.h"
+#include "MD.h"
 
 using namespace std;
 
@@ -14,7 +15,7 @@ bool cmp(Point_t p, Point_t q)
     return(p.x < q.x);
 }
 
-void HandleExtendedDislocation(InArgs_t *inArgs)
+void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 {
     Table_t         table;
     real8           cubel = 20000, boundMin[3], boundMax[3];
@@ -198,7 +199,50 @@ void HandleExtendedDislocation(InArgs_t *inArgs)
 }
 
 
+bool com(Atom_t p, Atom_t q){
+    return(p.y < q.y);
+}
+void HandleExtendedDislocation_MD(InArgs_t *inArgs)
+{
+    int         i, j, file, index;
+    double      cutofflen = 2.556;
+    MgData_t    mg;
+    LineList_t  list;
+    string      cutoffName("cutoff"), dvarName("dvar"), dvar("c_vcna");
 
+    if((index = GetValID(inArgs->priVars, cutoffName)) < inArgs->priVars.size()){
+        cutofflen = atof(inArgs->priVars[index].vals[0].c_str());
+    }
+    printf("The cut-off (cutoff) length is %f\n", cutofflen);
+
+    if((index = GetValID(inArgs->priVars, dvarName)) < inArgs->priVars.size()){
+        dvar = inArgs->priVars[index].vals[0];
+    }
+    printf("The determined var (dvar) is %s\n", dvar.c_str());
+
+    ReadDataFromMDLogFile(inArgs->auxFiles, list);
+
+    for(file=0; file<inArgs->inpFiles.size(); file++){
+        ReadMGDataFile(inArgs->inpFiles[file], mg);
+        sort(mg.atom.begin(), mg.atom.end(), com);
+    
+#if 0
+        printf("Timestep %d, Atoms %d, Bouds %s %s %s, ", 
+               mg.timestep, mg.atoms, mg.bounds[0].c_str(), 
+               mg.bounds[1].c_str(), mg.bounds[2].c_str());
+        printf("Box %e %e %e %e %e %e\n", mg.box[0], mg.box[1],
+               mg.box[2], mg.box[3], mg.box[4], mg.box[5]);
+
+        printf("variables are ");
+        for(i=0; i<mg.variables.size(); i++){
+            printf("%s(%d) ", mg.variables[i].c_str(), (int)mg.atom.size());
+        }
+        printf("\n");
+#endif
+
+    }
+    return;
+}
 
 
 

@@ -2,7 +2,6 @@
 #include "Home.h"
 #include "Util.h"
 
-
 void Fatal(const char *format, ...) 
 {
         char    msg[512];
@@ -181,9 +180,38 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
     }
 } 
 
+void SwapTable(Table_t &table){
+    vector<string>().swap(table.variables);
+    vector<vector<double> >().swap(table.data);
+    return;
+}
+
+void SwapLineList(LineList_t &list){
+    vector<string>().swap(list.variables);
+    vector<vector<double> >().swap(list.data);
+    return;
+}
 
 
+void CleanMgData(MgData_t &mg)
+{
+    int i;
+    mg.timestep = 0;
+    mg.atoms = 0;
+    for(i=0; i<6; i++){
+        mg.box[i] = 0.0;
+    }
 
+    vector<string>().swap(mg.bounds);
+    vector<string>().swap(mg.variables);
+    
+    for(i=0; i<mg.atom.size(); i++){
+        vector<double>().swap(mg.atom[i].vars);
+    }
+    vector<Atom_t>().swap(mg.atom);
+
+    return;
+}
 
 
 
