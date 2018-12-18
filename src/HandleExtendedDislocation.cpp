@@ -202,6 +202,13 @@ typedef struct {
     vector<Atom_t *>    nbr;
 }Probe_t;
 
+typedef struct {
+    int timestep;
+    double x,y,z;
+    double separation;
+    vector<double> vars;
+}EDState_t;
+
 bool com(Atom_t p, Atom_t q){
     if(fabs(p.y - q.y) < 0.1){
         if(fabs(p.z - q.z)< 0.1){
@@ -213,21 +220,44 @@ bool com(Atom_t p, Atom_t q){
         return(p.y < q.y);
     }
 }
+
+bool com2(Probe_t p, Probe_t q)
+{
+    return(p.y<p.y);
+}
+bool com3(EDState_t p, EDState_t q)
+{
+    return(p.timestep<q.timestep);
+}
+
 void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 {
     int         i, j, file, index, lastIndex, firstNbr, indexVar;
-    double      cutofflen = 2.556;
+    int         nums[2] = {18, 24}, logfile;
+    int         stepID;
+    double      cutofflen = 2.556, alpha = 0.005, beta = 1.0;
+    double      position[3], separation;
     MgData_t    mg;
     LineList_t  list;
     double      dir[3] = {0, 1, 0}, p0[3], dval=5; 
-    string      cutoffName("cutoff"), dvarName("dvar"), dvar("c_vcna"), p0Name("p0"), dirName("dir");
+    bool        noP0 = 1;
+    string      paraName("para"), dvarName("dvar"), dvar("c_vcna"), p0Name("p0"), dirName("dir");
+    string      numsName("nums");
 
     vector<Atom_t>::iterator     it; 
+    vector<EDState_t>   states;
+    EDState_t   state;
 
-    if((index = GetValID(inArgs->priVars, cutoffName)) < inArgs->priVars.size()){
-        cutofflen = atof(inArgs->priVars[index].vals[0].c_str());
+    ofstream out;
+    out.open(inArgs->outFiles[0].c_str(), ios::out);
+
+    if((index = GetValID(inArgs->priVars, paraName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size() == 2){
+            cutofflen = atof(inArgs->priVars[index].vals[0].c_str());
+            alpha = atof(inArgs->priVars[index].vals[1].c_str());
+        }
     }
-    printf("The cut-off (cutoff) length is %f\n", cutofflen);
+    printf("The parameters (para): cut-off length %f and resolution value %f\n", cutofflen, alpha);
 
     if((index = GetValID(inArgs->priVars, dvarName)) < inArgs->priVars.size()){
         dvar = inArgs->priVars[index].vals[0];
@@ -244,11 +274,9 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         p0[0] = atof(inArgs->priVars[index].vals[0].c_str());
         p0[1] = atof(inArgs->priVars[index].vals[1].c_str());
         p0[2] = atof(inArgs->priVars[index].vals[2].c_str());
-    }else{
-        Fatal("You have to determine the initial point by  -dp0 x y z");
-        
+        noP0 = 0;
+        printf("The initial probe point (p0) is %f %f %f\n", p0[0], p0[1], p0[2]);
     }
-    printf("The initial probe point (p0) is %f %f %f\n", p0[0], p0[1], p0[2]);
 
     if((index = GetValID(inArgs->priVars, dirName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() != 3){
@@ -259,26 +287,19 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         dir[2] = atof(inArgs->priVars[index].vals[2].c_str());
         NormalizeVec(dir);
     }
-    printf("The direction of probe moving is along %f, %f, %f\n", dir[0], dir[1], dir[2]);
+    printf("The moving direction of probe is along %f, %f, %f\n", dir[0], dir[1], dir[2]);
 
-    ReadDataFromMDLogFile(inArgs->auxFiles, list);
+    if((index = GetValID(inArgs->priVars, numsName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size() == 2){
+            nums[0] = atoi(inArgs->priVars[index].vals[0].c_str());
+            nums[1] = atoi(inArgs->priVars[index].vals[1].c_str());
+        }
+    }
+    printf("The parameters (para): cut-off length %f and resolution value %f\n", cutofflen, alpha);
+    logfile = ReadDataFromMDLogFile(inArgs->auxFiles, list);
 
     for(file=0; file<inArgs->inpFiles.size(); file++){
-        printf("1\n");
         ReadMGDataFile(inArgs->inpFiles[file], mg);
-        printf("2\n");
-
-        printf("Timestep %d, Atoms %d, Bouds %s %s %s, ", 
-               mg.timestep, (int)mg.atom.size(), mg.bounds[0].c_str(), 
-               mg.bounds[1].c_str(), mg.bounds[2].c_str());
-        printf("Box %e %e %e %e %e %e\n", mg.box[0], mg.box[1],
-               mg.box[2], mg.box[3], mg.box[4], mg.box[5]);
-
-        printf("variables are ");
-        for(i=0; i<mg.variables.size(); i++){
-            printf("%s(%d) ", mg.variables[i].c_str(), (int)mg.atom.size());
-        }
-        printf("\n");
 
         for(i=0; i<mg.variables.size(); i++){
             if(dvar == mg.variables[i])break;
@@ -288,9 +309,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                     inArgs->inpFiles[file].c_str());
         }
         
-        printf("2.1 %d\n", indexVar);
         for(it = mg.atom.end(), i=mg.atom.size()-1; it != mg.atom.begin(); it--, i--){
-        printf("2.1.0 %f %f %f %d\n", (*it).x, (*it).y, (*it).z, (int)mg.atom[i].vars.size());
             if((*it).x < mg.box[0] + (mg.box[1]-mg.box[0])*0.05 ||
                (*it).y < mg.box[2] + (mg.box[3]-mg.box[2])*0.05 ||
                (*it).z < mg.box[4] + (mg.box[5]-mg.box[4])*0.05 ||
@@ -298,26 +317,31 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                (*it).y > mg.box[2] + (mg.box[3]-mg.box[2])*0.95 ||
                (*it).z > mg.box[4] + (mg.box[5]-mg.box[4])*0.95){
         
-        printf("2.1.00 %f\n", dval);
                 if(mg.atom[i].vars[indexVar] == dval){
-        printf("2.1.1 %f\n", dval);
 //                    vector<double>().swap(mg.atom[i].vars);
-        printf("2.1.2\n");
                     mg.atom.erase(it); 
-        printf("2.1.3\n");
                 }
             }
         }
 
-        printf("3\n");
-        sort(mg.atom.begin(), mg.atom.end(), com);
-        printf("4 %d\n", mg.atom.size());
-
-        for(i=0; i<mg.atom.size(); i++){
-            if(mg.atom[i].vars.size()!=3){
-                Fatal("%d i vars size 0");
+        if(noP0 ==1 && file == 0){
+            j = 0;
+            for(i=0; i<mg.atom.size(); i++){
+                 if(mg.atom[i].vars[indexVar] != dval)continue;
+                 j++;
+                p0[0] += mg.atom[i].x;
+                p0[2] += mg.atom[i].z;
             }
+            if(j==0){
+                Fatal("The");
+            }
+            p0[1]  = mg.box[2];
+            p0[0] /= ((double)j);
+            p0[2] /= ((double)j);
+            printf("The initial probe point (p0) is %f %f %f\n", p0[0], p0[1], p0[2]);
         }
+
+        sort(mg.atom.begin(), mg.atom.end(), com);
 
         vector<Probe_t> probes;
         Probe_t         probe;
@@ -328,44 +352,45 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 
         lastIndex = 0;
         while(1){
-        printf("4.1\n");
             vector<Atom_t *>().swap(probe.nbr);
-            probe.x += (dir[0]*d*cutofflen*0.8);
-            probe.y += (dir[1]*d*cutofflen*0.8);
-            probe.z += (dir[2]*d*cutofflen*0.8);
+            probe.x += (dir[0]*d*cutofflen*alpha);
+            probe.y += (dir[1]*d*cutofflen*alpha);
+            probe.z += (dir[2]*d*cutofflen*alpha);
             
             firstNbr = 1;
-        printf("4.2 %d\n", (int)mg.atom.size());
             for(i=lastIndex; i<mg.atom.size(); i++){
-        printf("4.3.1 %d, %d, %d\n", i, indexVar, (int)mg.atom[i].vars.size());
                 if((pow((mg.atom[i].y-probe.y), 2) + 
                    pow((mg.atom[i].z-probe.z), 2) < cutofflen*cutofflen)
                    && mg.atom[i].vars[indexVar] == dval){
-        printf("4.3.1.1 %d\n", i);
                     if(firstNbr){
                         lastIndex = i;
                         firstNbr = 0;
                     }
                     probe.nbr.push_back(&mg.atom[i]);
-        printf("4.3.1.2 %d\n", i);
                 }
-        printf("4.3.2 %d\n", i);
             }
-        printf("4.4\n");
-            if(probe.nbr.size()>0){
-        printf("4.5.1\n");
+            if(probe.nbr.size() > nums[0] && probe.nbr.size()<nums[1]){
                 probes.push_back(probe);
-        printf("4.5.2\n");
                 vector<Atom_t *>().swap(probe.nbr);
-        printf("4.5.3\n");
             }
-        printf("4.6\n");
             if(probe.y > mg.atom.back().y ||
                probe.z > mg.atom.back().z)break;
             d++;
         }
 
-        printf("probes:\n");
+#if 0
+        printf("Timestep %d, Atoms %d, Bouds %s %s %s, ", 
+               mg.timestep, (int)mg.atom.size(), mg.bounds[0].c_str(), 
+               mg.bounds[1].c_str(), mg.bounds[2].c_str());
+//        printf("Box %e %e %e %e %e %e\n", mg.box[0], mg.box[1],
+//               mg.box[2], mg.box[3], mg.box[4], mg.box[5]);
+
+        printf("variables are ");
+        for(i=0; i<mg.variables.size(); i++){
+            printf("%s(%d) ", mg.variables[i].c_str(), (int)mg.atom.size());
+        }
+        printf("\n");
+#endif
         for(i=0; i<probes.size(); i++){
             probes[i].x = 0.0;
             probes[i].y = 0.0;
@@ -379,15 +404,62 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
             probes[i].y /= (double)probes[i].nbr.size();
             probes[i].z /= (double)probes[i].nbr.size();
 
-            printf("probe %d, (%f,%f,%f) has nbr %d\n", i, probes[i].x, probes[i].y,
-                   probes[i].z, (int)probes[i].nbr.size());
         }
+        sort(probes.begin(), probes.end(), com2);
 
+        separation = 0;
+
+        if(probes.size() > 0){
+            separation = fabs(probes[0].y-probes.back().y);
+            if(separation > 0.1 && separation < 20){
+                state.x = (probes[0].x+probes.back().x)*0.5;
+                state.y = (probes[0].y+probes.back().y)*0.5;
+                state.z = (probes[0].z+probes.back().z)*0.5;
+                state.timestep = mg.timestep;
+                state.separation = separation;
+                if(logfile ==1){
+                    state.vars.resize(list.variables.size()-1);
+                    for(i=0; i<list.data[0].size(); i++){
+                        if(state.timestep == ((int)list.data[0][i]))break;
+                    }
+                    for(j=0; j<state.vars.size(); j++){
+                        state.vars[j] = list.data[j+1][i];
+                    }
+                }
+                states.push_back(state);
+            }
+        }
         
-#if 0
-#endif
-
     }
+
+    if(states.size() == 0){
+        Fatal("No out data can be dumped, please check parameters");
+    }
+
+    sort(states.begin(), states.end(), com3);
+
+    out << "variables = timestep, separation, y";
+    if(logfile == 1){
+        for(i=1; i<list.variables.size(); i++){
+            out << ", " << list.variables[i];
+        }
+    }
+    out << endl;
+
+    for(i=0; i<states.size(); i++){
+        out << states[i].timestep << " ";
+        out << states[i].separation << " ";
+        out << states[i].y  << " ";
+        for(j=0; j< states[i].vars.size(); j++){
+            out << setprecision(10) << states[i].vars[j] << " "; 
+        }
+        out << endl;
+
+//        printf("%d %f %f %d\n", states[i].timestep, states[i].separation, 
+//                states[i].y, ((int)(states[i].vars.size())));
+    }
+
+    out.close();
     return;
 }
 

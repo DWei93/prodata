@@ -165,7 +165,7 @@ int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list)
 
     vector<string>  words, subwords;
     SwapLineList(list);
-    
+   
     firstTime = 1;
     for(i=0; i<files.size(); i++){
         infile.open(files[i].c_str());
@@ -203,6 +203,9 @@ int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list)
         printf("\n");
     }
 #endif
+    if(list.data.size()==0){
+        return(0);
+    }
     return (1);
 }
 
