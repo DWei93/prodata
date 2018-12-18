@@ -140,21 +140,24 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         separation = 0.0;
         position = 0.0;
         for(i=0; i<seq.size(); i++){
-            data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
-            data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
+            data[1][i] = linearinterpolation(curve1, seq[i], boundmin[0], boundmax[0]) - cubel;
+            data[2][i] = linearinterpolation(curve2, seq[i], boundmin[0], boundmax[0]) - cubel;
             data[3][i] = 0.5 * (data[1][i] + data[2][i]);
-            separation += fabs(data[1][i] - data[2][i]);  
-            position += data[3][i];
+            if(i<seq.size()-2){
+                separation += fabs(data[1][i] - data[2][i]);  
+                position += data[3][i];
+            }
         }
-        separation /= ((double)seq.size());
-        position /= ((double)seq.size());
- 
+        separation /= ((double)(seq.size()-1));
+        position /= ((double)(seq.size()-1));
+        position += cubel;
+
         for(i=0; i<seq.size(); i++){
             data[4][i] = 0.0;
             data[5][i] = 0.0;
             data[6][i] = 0.0;
         }
- 
+
         for(i=0; i<seq.size(); i++){
             for(j=i; j<i+seq.size(); j++){
                 k = (j < seq.size()) ? j : j-seq.size();
@@ -166,6 +169,9 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
  
         for(i=0; i<seq.size(); i++){
             data[0][i] += 0.5*cubel;
+            data[1][i] += cubel;
+            data[2][i] += cubel;
+            data[3][i] += cubel;
             data[4][i] /= ((double)seq.size());
             data[5][i] /= ((double)seq.size());
             data[6][i] /= ((double)seq.size());
