@@ -15,6 +15,11 @@ bool cmp(Point_t p, Point_t q)
     return(p.x < q.x);
 }
 
+bool cmpvec(vector<double> p, vector<double> q)
+{
+    return(p[0] < q[0]);
+}
+
 void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 {
     Table_t         table;
@@ -25,15 +30,15 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     int             colX, colY, colBurgID;
     string          cubelName = "cubel", burgIDName = "burgID", remeshSizeName = "rsize";  
     string          fileName, secLine, fdir, curDir("./"), fname, aveFile;
-    real8           separation = 0.0, position = 0.0;
+    real8           separation = 0.0, position = 0.0, timenow;
     Point_t         p;
     vector<Point_t> points1, points2;
     Curve_t         curve1, curve2;
     LineList_t      list;
     
     vector<string>          words;
-    vector<real8>           seq;
-    vector<vector<double> > data(7);  
+    vector<real8>           seq, vec(3);
+    vector<vector<double> > data(7), outs;  
 
     list.variables.push_back("x");
     list.variables.push_back("y1");
@@ -189,11 +194,24 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         WriteTecplotNormalData(list, fileName, 10);
         vector<vector<double> >().swap(list.data);
 
-        out << words[1] << " "; 
-        out <<  setprecision(10)  << separation << " ";
-        out <<  setprecision(10)  << position << endl;
+        timenow = atof(words[1].c_str());
+
+        vec[0] = timenow;
+        vec[1] = separation;
+        vec[2] = position;
+
+        outs.push_back(vec);
+
     }
 
+    sort(outs.begin(), outs.end(), cmpvec); 
+
+    for(i=0; i<outs.size(); i++){
+        out <<  setprecision(10)  << outs[i][0] << " ";
+        out <<  setprecision(10)  << outs[i][1] << " ";
+        out <<  setprecision(10)  << outs[i][2] << endl;
+    }
+    out.close();
     return;
 }
 
