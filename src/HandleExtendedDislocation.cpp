@@ -148,21 +148,21 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         for(i=0; i<seq.size(); i++){
             data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
             data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
-            if(data[1][i] > 0 || data[2][i] > 0)plu = 1;
-            if(data[1][i] < 0 || data[2][i] < 0)min = 1;
+            if((data[1][i] > 0.5*boundMax[1] || (data[2][i] >  0.5*boundMax[1])))plu = 1;
+            if((data[1][i] <  0.5*boundMin[1] || (data[2][i] <  0.5*boundMin[1])))min = 1;
         }
 
         if(plu && min){
             changed1.resize(seq.size());
             changed2.resize(seq.size());
             for(i=0; i<seq.size(); i++){
-                if(data[1][i] > 0){
+                if(data[1][i] >  0.5*boundMax[1]){
                     changed1[i] = 1;
                     data[1][i] -= cubel;
                 }else {
                     changed1[i] = 0;
                 }
-                if(data[2][i] > 0){
+                if(data[2][i] >  0.5*boundMax[1]){
                     changed2[i] = 1;
                     data[2][i] -= cubel;
                 }else {
@@ -201,11 +201,14 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
  
         for(i=0; i<seq.size(); i++){
             data[0][i] += 0.5*cubel;
-            if(changed1[i]){
-                data[1][i] += cubel;
-            }
-            if(changed2[i]){
-                data[2][i] += cubel;
+
+            if(plu && min){
+                if(changed1[i]){
+                    data[1][i] += cubel;
+                }
+                if(changed2[i]){
+                    data[2][i] += cubel;
+                }
             }
 
             data[4][i] /= ((double)seq.size());
