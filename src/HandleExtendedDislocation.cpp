@@ -28,6 +28,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     real8           rd, yi1, yj1, yk2, yk3, s;
     int             index,  i, j, k, file, iPos;
     int             colX, colY, colBurgID;
+    bool            plu, min;
     string          cubelName = "cubel", burgIDName = "burgID", remeshSizeName = "rsize";  
     string          fileName, secLine, fdir, curDir("./"), fname, aveFile;
     real8           separation = 0.0, position = 0.0, timenow;
@@ -39,6 +40,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     vector<string>          words;
     vector<real8>           seq, vec(3);
     vector<vector<double> > data(7), outs;  
+    vector<bool>            changed1, changed2;
 
     list.variables.push_back("x");
     list.variables.push_back("y1");
@@ -142,24 +144,52 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
             data[0][i] = seq[i];
         }
         
-        separation = 0.0;
-        position = 0.0;
+        plu = 0; min = 0;
         for(i=0; i<seq.size(); i++){
             data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
             data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
-            data[3][i] = 0.5 * (data[1][i] + data[2][i]);
-            separation += fabs(data[1][i] - data[2][i]);  
-            position += data[3][i];
+            if(data[1][i] > 0 || data[2][i] > 0)plu = 1;
+            if(data[1][i] < 0 || data[2][i] < 0)min = 1;
         }
-        separation /= ((double)seq.size());
-        position /= ((double)seq.size());
- 
+
+        if(plu && min){
+            changed1.resize(seq.size());
+            changed2.resize(seq.size());
+            for(i=0; i<seq.size(); i++){
+                if(data[1][i] > 0){
+                    changed1[i] = 1;
+                    data[1][i] -= cubel;
+                }else {
+                    changed1[i] = 0;
+                }
+                if(data[2][i] > 0){
+                    changed2[i] = 1;
+                    data[2][i] -= cubel;
+                }else {
+                    changed2[i] = 0;
+                }
+            }
+        }
+
+        separation = 0.0;
+        position = 0.0;
+        for(i=0; i<seq.size(); i++){
+            data[3][i] = 0.5 * (data[1][i] + data[2][i]);
+            if(i<seq.size()-2){
+                separation += fabs(data[1][i] - data[2][i]);  
+                position += data[3][i];
+            }
+        }
+        separation /= ((double)(seq.size()-1));
+        position /= ((double)(seq.size()-1));
+        if(position < boundMin[1])position += cubel;
+
         for(i=0; i<seq.size(); i++){
             data[4][i] = 0.0;
             data[5][i] = 0.0;
             data[6][i] = 0.0;
         }
- 
+
         for(i=0; i<seq.size(); i++){
             for(j=i; j<i+seq.size(); j++){
                 k = (j < seq.size()) ? j : j-seq.size();
@@ -171,6 +201,13 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
  
         for(i=0; i<seq.size(); i++){
             data[0][i] += 0.5*cubel;
+            if(changed1[i]){
+                data[1][i] += cubel;
+            }
+            if(changed2[i]){
+                data[2][i] += cubel;
+            }
+
             data[4][i] /= ((double)seq.size());
             data[5][i] /= ((double)seq.size());
             data[6][i] /= ((double)seq.size());
