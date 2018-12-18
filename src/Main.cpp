@@ -183,8 +183,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  *          If the option doesn't begin with a '-' something
  *          is wrong, so notify the user and terminate.
  */
-            if (argv[i][0] != '-') {
-                printf("3\n");
+            if (argv[i][0] != '-' && atof(argv[i]) == 0) {
                 Usage(argv[0]);
                 exit(1);
             }
@@ -206,7 +205,6 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 
             if (j == OPT_MAX) {
                 Usage(argv[0]);
-                printf("1\n");
                 exit(1);
             }
 
@@ -216,17 +214,17 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  */
             if (optList[j].optPaired) {
                 if (i+1 >= argc) {
-                printf("2\n");
                     Usage(argv[0]);
                     exit(1);
                 } else {
                     i++;
                     vector<string>().swap(argValues);
-                    while(i < argc && argv[i][0] != '-'){
+                    while(i < argc && (argv[i][0] != '-' || 
+                          argv[i][0] == '-' && atof(argv[i]) != 0)){
                         argValue = argv[i++];
                         argValues.push_back(argValue);
                         if(i >= argc)break;
-                        if(argv[i][0] == '-')break;
+                        if(argv[i][0] == '-' && atof(argv[i]) == 0)break;
                     }
                     i--;
                 }

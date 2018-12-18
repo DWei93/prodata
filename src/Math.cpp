@@ -42,6 +42,10 @@ void AverageLines(InArgs_t *inArgs)
     }
     printf("The Record (record) state is %d\n", record);
 
+    if(inArgs->inpFiles.size() == 0){
+        Fatal("There is no input file.");
+    }
+
     for(i=0; i<inArgs->inpFiles.size(); i++){
         ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(i == 0){
