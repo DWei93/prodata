@@ -56,7 +56,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 
 int ReadMGDataFile(const string &file, MgData_t &mgdata)
 {
-    int         i, j;
+    int         i, j, atoms;
     int         idCol = 0, typeCol = 0;
     int         xCol = 0, yCol = 0, zCol = 0;
     ifstream    infile;
@@ -87,7 +87,7 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                 if(words.size()==4){
                     if(words[2] == "OF" && words[3] == "ATOMS"){
                         getline(infile,str);
-                        mgdata.atoms = atoi(str.c_str());
+                        atoms = atoi(str.c_str());
                     }
                 }
             }else if(words[1] == "BOX"){
@@ -126,7 +126,7 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                     j++;
                 } 
 
-                mgdata.atom.resize(mgdata.atoms);
+                mgdata.atom.resize(atoms);
                 for(i=0; i<mgdata.atom.size(); i++){
                     vector<string>().swap(subwords);
                     getline(infile,str);
@@ -165,7 +165,7 @@ int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list)
 
     vector<string>  words, subwords;
     SwapLineList(list);
-    
+   
     firstTime = 1;
     for(i=0; i<files.size(); i++){
         infile.open(files[i].c_str());
@@ -203,6 +203,9 @@ int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list)
         printf("\n");
     }
 #endif
+    if(list.data.size()==0){
+        return(0);
+    }
     return (1);
 }
 

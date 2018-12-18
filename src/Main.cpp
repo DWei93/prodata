@@ -184,6 +184,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  *          is wrong, so notify the user and terminate.
  */
             if (argv[i][0] != '-') {
+                printf("3\n");
                 Usage(argv[0]);
                 exit(1);
             }
@@ -205,6 +206,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 
             if (j == OPT_MAX) {
                 Usage(argv[0]);
+                printf("1\n");
                 exit(1);
             }
 
@@ -214,6 +216,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  */
             if (optList[j].optPaired) {
                 if (i+1 >= argc) {
+                printf("2\n");
                     Usage(argv[0]);
                     exit(1);
                 } else {
@@ -284,13 +287,6 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         swap(bakInps, inArgs->inpFiles);
         
         sort(inArgs->inpFiles.begin(), inArgs->inpFiles.end());
-        if(inArgs->inpFiles.size()>1){
-            printf("Input files are:\n");
-            for(i=0; i<inArgs->inpFiles.size(); i++){
-                printf("%s \n", inArgs->inpFiles[i].c_str());
-            }
-        }
-    
         if(inArgs->auxFiles.size()>0){
             strs.resize(inArgs->auxFiles.size());
             vector<string>().swap(bakInps);
@@ -303,13 +299,21 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
             }
             swap(bakInps, inArgs->auxFiles);
         }
+#if 0
+        if(inArgs->inpFiles.size()>1){
+            printf("Input files are:\n");
+            for(i=0; i<inArgs->inpFiles.size(); i++){
+                printf("%s \n", inArgs->inpFiles[i].c_str());
+            }
+        }
+    
         if(inArgs->auxFiles.size() > 0){
             printf("Auxiliary file(s) :\n");
             for(i=0; i<inArgs->auxFiles.size(); i++){
                 printf("%s \n", inArgs->auxFiles[i].c_str());
             }
         }
-
+#endif
         return;
 }
 

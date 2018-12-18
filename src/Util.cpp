@@ -197,7 +197,6 @@ void CleanMgData(MgData_t &mg)
 {
     int i;
     mg.timestep = 0;
-    mg.atoms = 0;
     for(i=0; i<6; i++){
         mg.box[i] = 0.0;
     }
@@ -214,6 +213,21 @@ void CleanMgData(MgData_t &mg)
 }
 
 
+void NormalizeVec(real8 vec[3])
+{
+        real8 a2, a;
+
+        a2 = (vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+
+        if (a2 > 0.0) {
+            a = sqrt(a2);
+            vec[0] /= a;
+            vec[1] /= a;
+            vec[2] /= a;
+        }
+
+        return;
+}
 
 
 
