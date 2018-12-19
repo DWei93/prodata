@@ -11,7 +11,7 @@ using namespace std;
 void AverageLines(InArgs_t *inArgs)
 {
     int     index, i, j, k, colX, colY;
-    int     record = 0;
+    int     record = 0, readState;
     real8   rsize = 20, min, max;
     string  rsizeName("rsize"), varsName("vars"), recordName("record");
     string  xName("X"), yName("Y"), str("Ave_"), secLine; 
@@ -47,7 +47,8 @@ void AverageLines(InArgs_t *inArgs)
     }
 
     for(i=0; i<inArgs->inpFiles.size(); i++){
-        ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
+        readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
+        if(!readState)continue;
         if(i == 0){
             colX = GetColIDFromTable(tables[i], xName);
             colY = GetColIDFromTable(tables[i], yName);

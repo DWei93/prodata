@@ -19,7 +19,8 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     infile.open(file.c_str());
 
     if(!infile){
-        Fatal("cant not the file %s", file.c_str());
+        printf("Warning: cant not the file %s", file.c_str());
+        return (0);
     }
 
     vector<string>().swap(table.variables);
@@ -28,7 +29,10 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
  *  Read the first line.
  */
     getline(infile, str);
-    if(str.empty())Fatal("there is noting in the file %s", file.c_str());
+    if(str.empty()){
+        printf("Warning: there is noting in the file %s", file.c_str());
+        return (0);
+    }
     line = split(str, "=");
     table.variables = split(line[1], ",");
     for(i=0; i<table.variables.size(); i++)WashString(table.variables[i]);
@@ -70,7 +74,8 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
     vector<int>     varCol;
 
     if(!infile){
-        Fatal("cant not the file %s", file.c_str());
+        printf("Warning: cant not the file %s", file.c_str());
+        return (0);
     }
 
     while(getline(infile,str))
@@ -110,7 +115,10 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                     }
                 } 
              }else if(words[1] == "ATOMS"){
-                if(words.size()<=7)Fatal("in file %s, can not read %s", file.c_str(), str.c_str());
+                if(words.size()<=7){
+                    printf("Waring: in file %s, can not read %s", file.c_str(), str.c_str());
+                    return(0);
+                }
 
                 varCol.resize(words.size()-7);
                 mgdata.variables.resize(words.size()-7);
@@ -132,7 +140,8 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                     getline(infile,str);
                     subwords = split(str, " ");
                     if(subwords.size() != mgdata.variables.size()+5){
-                        Fatal("in file %s, can not read %s", file.c_str(), str.c_str());
+                        printf("Warning: in file %s, can not read %s", file.c_str(), str.c_str());
+                        return (0);
                     }
 
                     mgdata.atom[i].x = atof(subwords[xCol].c_str());
@@ -147,7 +156,8 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                     }
                 }
             }else{
-                Fatal("not support the ITEM %s", words[1].c_str());
+                printf("Warning: not support the ITEM %s", words[1].c_str());
+                return (0);
             }
         } /*End of if */
         

@@ -89,7 +89,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 
         vector<string>().swap(table.variables);
 
-        ReadTecplotNormalData(inArgs->inpFiles[file], table, secLine);
+        if(!ReadTecplotNormalData(inArgs->inpFiles[file], table, secLine))continue;
         vector<string>().swap(words);
         words = split(secLine, "\"");
  
@@ -116,6 +116,8 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
                 points2.push_back(p);
             }
         }
+
+        if(points1.size() == 0 || points2.size() == 0)continue;
  
         sort(points1.begin(), points1.end(), cmp); 
         sort(points2.begin(), points2.end(), cmp); 
