@@ -82,6 +82,7 @@ vector<double>  GenerateSequence(double from, double to, double meshSize)
 
     meshSize = (to-from)/((double)n);
 
+    n++;
     vector<double>  seq(n);
     
     for(i=0; i<n; i++){
