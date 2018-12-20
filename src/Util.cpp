@@ -68,21 +68,25 @@ int GetColIDFromTable(const Table_t &table, const string &name)
 vector<double>  GenerateSequence(double from, double to, double meshSize)
 {
     double  nums, sign;
-    double  i;
+    int     i, n;
     
     nums = (to-from)/fabs(meshSize);
     sign = (nums >= 0) ? 1.0:-1.0;
     nums = fabs(nums);
 
     if(nums - floor(nums) != 0){
-        nums++;
+        n = (int)(floor(nums) + 1);
+    }else{
+        n = (int)nums;
     }
-    vector<double>  seq((int)(nums));
+
+    meshSize = (to-from)/((double)n);
+
+    vector<double>  seq(n);
     
-    for(i=0; i<nums-1; i++){
-        seq[(int)i] = from + i*fabs(meshSize)*sign;
+    for(i=0; i<n; i++){
+        seq[i] = from + (double(i))*fabs(meshSize)*sign;
     }
-    seq[(int)i] = to;
     return(seq);
 }
 
