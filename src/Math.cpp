@@ -13,7 +13,7 @@ void AverageLines(InArgs_t *inArgs)
     int     index, i, j, k, colX, colY;
     int     readState;
     bool    firstFile = 1;
-    real8   rsize = 20, min, max, effNums;
+    real8   rsize = 20, min, max, effNums = 0;
     string  rsizeName("rsize"), varsName("vars");
     string  str("Ave_"), secLine; 
 
@@ -56,7 +56,6 @@ void AverageLines(InArgs_t *inArgs)
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
 
-        effNums++;
         if(tables[i].data.size() < 2){
             Fatal("The size of file %s is wrong", inArgs->inpFiles[i].c_str());
         }
@@ -98,6 +97,7 @@ void AverageLines(InArgs_t *inArgs)
 
     for(i=0; i<tables.size(); i++){
         if(tables[i].data.size()==0)continue;
+        effNums++;
 
         for(j=0; j<varID.size(); j++){
             varID[j] = GetColIDFromTable(tables[i], list.variables[j]);
