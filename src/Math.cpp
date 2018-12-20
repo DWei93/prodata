@@ -11,15 +11,17 @@ using namespace std;
 void AverageLines(InArgs_t *inArgs)
 {
     int     index, i, j, k, colX, colY;
-    int     record = 0, readState;
-    real8   rsize = 20, min, max;
-    string  rsizeName("rsize"), varsName("vars"), recordName("record");
-    string  xName("X"), yName("Y"), str("Ave_"), secLine; 
+    int     readState;
+    bool    firstFile = 1;
+    real8   rsize = 20, min, max, effNums;
+    string  rsizeName("rsize"), varsName("vars");
+    string  str("Ave_"), secLine; 
 
     LineList_t  list;
     Curve_t     curve;
 
-    vector<real8>       seq, yVals, aveVals;
+    vector<int>         varID;
+    vector<real8>       seq;
     vector<Table_t>     tables(inArgs->inpFiles.size());
     vector<string>      s1, s2;
 
@@ -29,18 +31,22 @@ void AverageLines(InArgs_t *inArgs)
     printf("The remesh size (rsize) is %f\n", rsize);
 
     if((index = GetValID(inArgs->priVars, varsName)) < inArgs->priVars.size()){
-        if(inArgs->priVars[index].vals.size() == 2){
-            xName = inArgs->priVars[index].vals[0];
-            yName = inArgs->priVars[index].vals[1];
+        if(inArgs->priVars[index].vals.size() < 2){
+            Fatal("variables is not enough for aveage line");
         }
-    }
-    str += yName; 
-    printf("The variables (vars) are %s %s\n", xName.c_str(), yName.c_str());
 
-    if((index = GetValID(inArgs->priVars, recordName)) < inArgs->priVars.size()){
-        record = atoi(inArgs->priVars[index].vals[0].c_str());
+        list.variables.resize(inArgs->priVars[index].vals.size());
+        varID.resize(inArgs->priVars[index].vals.size());
+
+        printf("The variables (vars) are ");
+        for(i=0; i<inArgs->priVars[index].vals.size(); i++){
+            list.variables[i] = inArgs->priVars[index].vals[i];
+            printf("%s ", list.variables[i].c_str());
+        }
+        printf("\n");
     }
-    printf("The Record (record) state is %d\n", record);
+
+    if(inArgs->help)return;
 
     if(inArgs->inpFiles.size() == 0){
         Fatal("There is no input file.");
@@ -49,67 +55,81 @@ void AverageLines(InArgs_t *inArgs)
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
-        if(i == 0){
-            colX = GetColIDFromTable(tables[i], xName);
-            colY = GetColIDFromTable(tables[i], yName);
+
+        effNums++;
+        if(tables[i].data.size() < 2){
+            Fatal("The size of file %s is wrong", inArgs->inpFiles[i].c_str());
+        }
+        
+        if(firstFile){
+            if(list.variables.size()==0){
+                list.variables.resize(tables[i].variables.size());
+                varID.resize(list.variables.size());
+            
+                printf("The average variables (vars) are: ");
+                for(j=0; j<tables[i].variables.size(); j++){
+                    list.variables[j] = tables[i].variables[j];
+                    printf("%s ",list.variables[j].c_str());
+                }
+                printf("\n");
+            }
             min = tables[i].data[0][colX];
             max = tables[i].data[tables[i].data.size()-1][colX];
-      }else{
-            if(colX != GetColIDFromTable(tables[i], xName) ||
-               colY != GetColIDFromTable(tables[i], yName)){
-                Fatal("The format of file %s is not same as the first one",
-                      inArgs->inpFiles[i].c_str());
-            }
-
+            firstFile = 0;
+        }else{
             if(min < tables[i].data[0][colX]) min = tables[i].data[0][colX];
             if(max > tables[i].data[tables[i].data.size()-1][colX]){
                 max = tables[i].data[tables[i].data.size()-1][colX];
             }
         }
-        if(tables[i].data.size() < 2){
-            Fatal("The size of file %s is wrong", inArgs->inpFiles[i].c_str());
-        }
     }
 
+    printf("The effective range of %s is [%f,%f]\n", list.variables[0].c_str(), min, max);
     seq = GenerateSequence(min, max, rsize);
-    yVals.resize(seq.size());
-    aveVals.resize(seq.size());
+    list.data.resize(list.variables.size());
+    for(i=0; i<list.data.size(); i++){
+        list.data[i].resize(seq.size());
+        for(j=0; j<list.data[i].size(); j++)list.data[i][j] = 0.0;
+    }
 
     for(i=0; i<seq.size(); i++){
-        aveVals[i] = 0.0;
+        list.data[0][i] = seq[i];
     }
 
-    list.variables.push_back(xName);
-    list.data.push_back(seq);
+    for(i=0; i<tables.size(); i++){
+        if(tables[i].data.size()==0)continue;
 
-    for(i=0; i<inArgs->inpFiles.size(); i++){
-        curve.ax.resize(tables[i].data.size());
-        curve.ay.resize(tables[i].data.size());
+        for(j=0; j<varID.size(); j++){
+            varID[j] = GetColIDFromTable(tables[i], list.variables[j]);
+            if(varID[j] == tables[i].variables.size()){
+                Fatal("there is no %s in the file %s ", list.variables[j].c_str(), 
+                        inArgs->inpFiles[i].c_str());
+            }
 
-        for(j=0; j<curve.ax.size(); j++){
-            curve.ax[j] = tables[i].data[j][colX];
-            curve.ay[j] = tables[i].data[j][colY];
-        }
-        
-        for(j=0; j<seq.size(); j++){
-            yVals[j] = LinearInterpolation(curve, seq[j], min, max);
-            aveVals[j] += yVals[j];
-        }
-        list.data.push_back(yVals);
-         
-        if(record){
-            s1 = split(inArgs->inpFiles[i], "/");
-            s2 = split(s1.back(), ".");
-            list.variables.push_back(s2.front());
-            list.data.push_back(yVals);
+            if(j==0){
+                curve.ax.resize(tables[i].data.size());
+                curve.ay.resize(tables[i].data.size());
+                for(k=0; k<curve.ax.size(); k++){
+                    curve.ax[k] =  tables[i].data[k][varID[j]];
+                }
+            }else{
+                for(k=0; k<curve.ax.size(); k++){
+                    curve.ay[k] =  tables[i].data[k][varID[j]];
+                }
+
+                for(k=0; k<seq.size(); k++){
+                    list.data[j][k] += LinearInterpolation(curve, seq[k], min, max);
+                }
+            }
+
         }
     }
 
-    list.variables.push_back(str);
-    for(j=0; j<seq.size(); j++){
-        aveVals[j] /= ((double)inArgs->inpFiles.size());
-    }    
-    list.data.push_back(aveVals);
+    for(i=1; i<list.data.size(); i++){
+        for(j=0; j<list.data[i].size(); j++){
+            list.data[i][j] /= effNums;
+        }
+    }
 
     WriteTecplotNormalData(list, inArgs->outFiles[0], 10);
 

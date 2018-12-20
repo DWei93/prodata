@@ -65,11 +65,6 @@ Option_t optList[OPT_MAX] = {
  *-------------------------------------------------------------------------*/
 static void Usage(char *program)
 {
-        printf("\n");
-        printf("Usage:\n");
-        printf("\n");
-        printf("\n");
-
         return;
 }
 
@@ -93,10 +88,7 @@ static void PrintHelp(char *program)
     printf("    Options may be abbreviated to the shortest non-ambiguous\n");
     printf("\n");
 
- 
-    exit(0);
 }
-
 
 /*---------------------------------------------------------------------------
  *
@@ -110,6 +102,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->outFiles.push_back((char*)"output");
         inArgs->seed       = time(0) + getpid();
         inArgs->type       = 0;
+        inArgs->help       = 0;
         	
         return;
 }
@@ -235,7 +228,8 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
             switch (j)  {
                 case OPT_HELP:
                     PrintHelp(argv[0]);
-                    exit(0);
+                    inArgs->help = 1;
+                    break;
                 case OPT_INPFILE:
                     swap(inArgs->inpFiles, argValues);
                     break;
@@ -263,6 +257,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 
         }
         
+#if 0
         if(inArgs->priVars.size()>0){
             printf("Private vars for type %d:\n", inArgs->type);
             for(i=0; i<inArgs->priVars.size(); i++){
@@ -273,7 +268,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 printf("\n");
             }
         }
-
+#endif
     
         strs.resize(inArgs->inpFiles.size());
         for(i=0; i<inArgs->inpFiles.size(); i++){

@@ -42,6 +42,6 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
     }
      
     out.close();
-    printf("Finsish writing output file %s\n", fn.c_str());    
+//    printf("Finsish writing output file %s\n", fn.c_str());    
     return;
 }

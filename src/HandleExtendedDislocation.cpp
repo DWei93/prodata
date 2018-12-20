@@ -84,6 +84,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         remeshSize = atof(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The remesh size is %f\n", remeshSize);
+    if(inArgs->help)return;
 
     for(file=0; file<inArgs->inpFiles.size(); file++){
 
@@ -296,7 +297,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
     int         nums[2] = {18, 24}, logfile;
     int         stepID;
     double      cutofflen = 2.556, alpha = 0.005, beta = 1.0;
-    double      position[3], separation;
+    double      position[3], separation, dis, maxDis;
     MgData_t    mg;
     LineList_t  list;
     double      dir[3] = {0, 1, 0}, p0[3], dval=5; 
@@ -347,7 +348,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         dir[2] = atof(inArgs->priVars[index].vals[2].c_str());
         NormalizeVec(dir);
     }
-    printf("The moving direction of probe is along %f, %f, %f\n", dir[0], dir[1], dir[2]);
+    printf("The moving direction of probe (dir) is along %f, %f, %f\n", dir[0], dir[1], dir[2]);
 
     if((index = GetValID(inArgs->priVars, numsName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 2){
@@ -355,7 +356,9 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
             nums[1] = atoi(inArgs->priVars[index].vals[1].c_str());
         }
     }
-    printf("The parameters (para): cut-off length %f and resolution value %f\n", cutofflen, alpha);
+    printf("The range of effective atoms of a paritial (nums) is [%d,%d]\n", nums[0], nums[1]);
+
+    if(inArgs->help)return;
     logfile = ReadDataFromMDLogFile(inArgs->auxFiles, list);
 
     for(file=0; file<inArgs->inpFiles.size(); file++){
@@ -378,7 +381,6 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                (*it).z > mg.box[4] + (mg.box[5]-mg.box[4])*0.95){
         
                 if(mg.atom[i].vars[indexVar] == dval){
-//                    vector<double>().swap(mg.atom[i].vars);
                     mg.atom.erase(it); 
                 }
             }
@@ -413,15 +415,17 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         lastIndex = 0;
         while(1){
             vector<Atom_t *>().swap(probe.nbr);
+
             probe.x += (dir[0]*d*cutofflen*alpha);
             probe.y += (dir[1]*d*cutofflen*alpha);
             probe.z += (dir[2]*d*cutofflen*alpha);
             
             firstNbr = 1;
+            maxDis = -1E10;
             for(i=lastIndex; i<mg.atom.size(); i++){
-                if((pow((mg.atom[i].y-probe.y), 2) + 
-                   pow((mg.atom[i].z-probe.z), 2) < cutofflen*cutofflen)
-                   && mg.atom[i].vars[indexVar] == dval){
+                dis = sqrt(pow((mg.atom[i].y-probe.y), 2) +
+                      pow((mg.atom[i].z-probe.z), 2) );
+                if(dis < cutofflen && mg.atom[i].vars[indexVar] == dval){
                     if(firstNbr){
                         lastIndex = i;
                         firstNbr = 0;

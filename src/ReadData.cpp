@@ -53,7 +53,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         j++;
     }
     infile.close();
-    printf("Finsish reading input file %s\n", file.c_str());    
+//    printf("Finsish reading input file %s\n", file.c_str());    
     return 1;            
 }
 

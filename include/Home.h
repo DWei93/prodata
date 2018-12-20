@@ -33,6 +33,7 @@ typedef struct {
         double  burgMag;
         int     seed;
         int     type;
+        bool    help;
 
         vector<string>  inpFiles, outFiles;
         vector<string>  auxFiles;
