@@ -118,6 +118,35 @@ void FoldBox(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z)
         return;
 }
 
+void ZImage(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z)
+{
+        real8   xc, yc, zc;
+
+        real8   invLx, invLy, invLz, Lx, Ly, Lz;
+
+        xc = (boundMin[0] + boundMax[0]) * 0.5;
+        yc = (boundMin[1] + boundMax[1]) * 0.5;
+        zc = (boundMin[2] + boundMax[2]) * 0.5;
+
+        Lx = boundMax[0] - boundMin[0];
+        invLx = 1.0/Lx;
+        Ly = boundMax[1] - boundMin[1];
+        invLy = 1.0/Ly;
+        Lz = boundMax[2] - boundMin[2];
+        invLz = 1.0/Lz;
+/*
+ *      If periodic boundaries are not in use, the provided position
+ *      of (x,y,z) will not be adjusted since there are no other
+ *      images available.
+ */
+        *x -= rint(*x * invLx) * Lx;
+
+        *y -= rint(*y * invLy) * Ly;
+
+        *z -= rint(*z * invLz) * Lz;
+    
+        return;
+}
 
 real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
 {
