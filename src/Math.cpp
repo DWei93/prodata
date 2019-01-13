@@ -12,10 +12,10 @@ void AverageLines(InArgs_t *inArgs)
 {
     int     index, i, j, k, colX, colY;
     int     readState;
-    bool    firstFile = 1;
-    real8   rsize = 20, min, max, effNums = 0;
+    bool    firstFile = 1, calTau = 0;
+    real8   rsize = 20, min, max, effNums = 0, value;
     string  rsizeName("rsize"), varsName("vars");
-    string  str("Ave_"), secLine; 
+    string  str("Ave_"), secLine, tauName("tau");
 
     LineList_t  list;
     Curve_t     curve;
@@ -24,11 +24,21 @@ void AverageLines(InArgs_t *inArgs)
     vector<real8>       seq;
     vector<Table_t>     tables(inArgs->inpFiles.size());
     vector<string>      s1, s2;
+    vector<vector<vector<real8> > > array;
 
     if((index = GetValID(inArgs->priVars, rsizeName)) < inArgs->priVars.size()){
         rsize = atof(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The remesh size (rsize) is %f\n", rsize);
+
+    if((index = GetValID(inArgs->priVars, tauName)) < inArgs->priVars.size()){
+        calTau = atoi(inArgs->priVars[index].vals[0].c_str());
+    }
+    if(calTau){
+        printf("The variance (tau) will been caculated\n");
+    }else{
+        printf("The variance (tau) will not been caculated\n");
+    }
 
     if((index = GetValID(inArgs->priVars, varsName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() < 2){
@@ -56,6 +66,7 @@ void AverageLines(InArgs_t *inArgs)
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
 
+        effNums++;
         if(tables[i].data.size() < 2){
             Fatal("The size of file %s is wrong", inArgs->inpFiles[i].c_str());
         }
@@ -82,9 +93,20 @@ void AverageLines(InArgs_t *inArgs)
             }
         }
     }
-
     printf("The effective range of %s is [%f,%f]\n", list.variables[0].c_str(), min, max);
+    printf("%d files was read\n", (int)effNums);
+
     seq = GenerateSequence(min, max, rsize);
+    if(calTau){
+        array.resize((int)(effNums));
+        for(i=0; i<array.size(); i++){
+            array[i].resize(list.variables.size()-1);
+            for(j=0; j<array[i].size(); j++){
+                array[i][j].resize(seq.size());
+            }
+        }
+    }
+
     list.data.resize(list.variables.size());
     for(i=0; i<list.data.size(); i++){
         list.data[i].resize(seq.size());
@@ -97,7 +119,6 @@ void AverageLines(InArgs_t *inArgs)
 
     for(i=0; i<tables.size(); i++){
         if(tables[i].data.size()==0)continue;
-        effNums++;
 
         for(j=0; j<varID.size(); j++){
             varID[j] = GetColIDFromTable(tables[i], list.variables[j]);
@@ -118,16 +139,44 @@ void AverageLines(InArgs_t *inArgs)
                 }
 
                 for(k=0; k<seq.size(); k++){
-                    list.data[j][k] += LinearInterpolation(curve, seq[k], min, max);
+                    value = LinearInterpolation(curve, seq[k], min, max);
+                    list.data[j][k] += (value/effNums);
+                    if(calTau){
+                        array[i][j-1][k] = value; 
+                    }
                 }
             }
 
         }
     }
 
-    for(i=1; i<list.data.size(); i++){
-        for(j=0; j<list.data[i].size(); j++){
-            list.data[i][j] /= effNums;
+    if(calTau){
+        int     oriVals;
+        string  head("D_");
+    
+        oriVals = list.variables.size();
+        list.variables.resize(2*list.variables.size()-1);
+        list.data.resize(list.variables.size());
+
+
+        for(i=oriVals; i<list.variables.size(); i++){
+            list.data[i].resize(seq.size());
+            list.variables[i] = head + list.variables[i-oriVals+1];
+            for(j=0; j<list.data[i].size(); j++)list.data[i][j] = 0.0;
+        }
+
+        for(i=0; i<array.size(); i++){
+            for(j=0; j<array[i].size(); j++){
+                for(k=0; k<array[i][j].size(); k++){
+                    list.data[j+oriVals][k] += (pow((array[i][j][k] - list.data[j+1][k]),2)/((real8)array.size()));
+                }
+            }
+        }
+
+        for(i=oriVals; i<list.data.size(); i++){
+            for(j=0; j<list.data[i].size(); j++){
+                list.data[i][j] = sqrt(list.data[i][j]);
+            }
         }
     }
 
