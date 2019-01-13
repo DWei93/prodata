@@ -17,7 +17,7 @@ bool cmp(Point_t p, Point_t q)
 
 bool cmpvec(vector<double> p, vector<double> q)
 {
-    return(p[0] < q[0]);
+    return(p[1] < q[1]);
 }
 
 void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
@@ -25,22 +25,22 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     Table_t         table;
     real8           cubel = 20000, boundMin[3], boundMax[3];
     real8           remeshSize = 20.0, burgID1 = 7, burgID2 = 12;
-    real8           rd, yi1, yj1, yk2, yk3, s;
+    real8           rd, yi1, yj1, yk2, yk3, s, absBakPos, bakPos, cyc;
     int             index,  i, j, k, file, iPos;
     int             colX, colY, colBurgID;
     bool            plu, min;
     string          cubelName = "cubel", burgIDName = "burgID", remeshSizeName = "rsize";  
     string          fileName, secLine, fdir, curDir("./"), fname, aveFile;
-    real8           separation = 0.0, position = 0.0, timenow;
+    real8           separation = 0.0, position = 0.0, position1, position2, timenow, dt;
+    real8           pos1[3] = {0,0,0}, pos2[3]={0,0,0}, disp[3] = {0,0,0};
     Point_t         p;
     vector<Point_t> points1, points2;
     Curve_t         curve1, curve2;
     LineList_t      list;
     
     vector<string>          words;
-    vector<real8>           seq, vec(3);
+    vector<real8>           seq, vec(12);
     vector<vector<double> > data(7), outs;  
-    vector<bool>            changed1, changed2;
 
     list.variables.push_back("x");
     list.variables.push_back("y1");
@@ -62,7 +62,8 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     }
     ofstream out;
     out.open(aveFile.c_str(), ios::out);
-    out << "variables = timeNow, separation, position" << endl;
+    out << "variables = file, timeNow, separation, p1, p2, p, disp,";
+    out << " velocity, v_p1, v_p2, v_p, v_separation" << endl;
     
     boundMin[0] = -0.5*cubel;
     boundMin[1] = -0.5*cubel;
@@ -86,6 +87,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     printf("The remesh size is %f\n", remeshSize);
     if(inArgs->help)return;
 
+    bakPos = 0.0;
     for(file=0; file<inArgs->inpFiles.size(); file++){
 
         vector<string>().swap(table.variables);
@@ -128,14 +130,33 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         curve2.ax.resize(points2.size());
         curve2.ay.resize(points2.size());
  
+        plu = 0; min = 0;
         for(i=0; i<points1.size(); i++){
             curve1.ax[i] = points1[i].x;
             curve1.ay[i] = points1[i].y;
+            if(curve1.ay[i] > 0.5*boundMax[1])plu = 1;
+            if(curve1.ay[i] < 0.5*boundMin[1])min = 1;
         }
  
         for(i=0; i<points2.size(); i++){
             curve2.ax[i] = points2[i].x;
             curve2.ay[i] = points2[i].y;
+            if(curve2.ay[i] > 0.5*boundMax[1])plu = 1;
+            if(curve2.ay[i] < 0.5*boundMin[1])min = 1;
+        }
+
+        if(plu && min){
+            for(i=0; i<curve1.ax.size(); i++){
+                if(curve1.ay[i] > 0.5*boundMax[1]){
+                    curve1.ay[i] -= cubel;
+                }
+            }
+
+            for(i=0; i<curve2.ax.size(); i++){
+                if(curve2.ay[i] > 0.5*boundMax[1]){
+                    curve2.ay[i] -= cubel;
+                }
+            }
         }
  
         vector<double>().swap(seq);
@@ -147,47 +168,47 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
             data[0][i] = seq[i];
         }
         
-        plu = 0; min = 0;
+        position1 = 0.0;
+        position2 = 0.0;
         for(i=0; i<seq.size(); i++){
             data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
             data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
-            if((data[1][i] > 0.5*boundMax[1] || (data[2][i] >  0.5*boundMax[1])))plu = 1;
-            if((data[1][i] <  0.5*boundMin[1] || (data[2][i] <  0.5*boundMin[1])))min = 1;
+            data[3][i] = 0.5*(data[1][i] + data[2][i]);
+            if(i<seq.size()-1){
+                position1 += data[1][i];
+                position2 += data[2][i];
+            }
         }
 
-        if(plu && min){
-            changed1.resize(seq.size());
-            changed2.resize(seq.size());
+        position1 /= ((double)(seq.size()-1));
+        position2 /= ((double)(seq.size()-1));
+        position = 0.5*(position1 + position2);
+        separation = fabs(position1 - position2);
+
+        if(position < boundMin[1]){
+            position  += cubel;
+            position1 += cubel;
+            position2 += cubel;
             for(i=0; i<seq.size(); i++){
-                if(data[1][i] >  0.5*boundMax[1]){
-                    changed1[i] = 1;
-                    data[1][i] -= cubel;
-                }else {
-                    changed1[i] = 0;
-                }
-                if(data[2][i] >  0.5*boundMax[1]){
-                    changed2[i] = 1;
-                    data[2][i] -= cubel;
-                }else {
-                    changed2[i] = 0;
-                }
+                data[1][i] += cubel;
+                data[2][i] += cubel;
+                data[3][i] += cubel;
             }
         }
 
-        separation = 0.0;
-        position = 0.0;
-        for(i=0; i<seq.size(); i++){
-            data[3][i] = 0.5 * (data[1][i] + data[2][i]);
-            if(i<seq.size()-2){
-                separation += fabs(data[1][i] - data[2][i]);  
-                position += data[3][i];
-            }
-        }
-        separation /= ((double)(seq.size()-1));
-        position /= ((double)(seq.size()-1));
-        if(position < boundMin[1])position += cubel;
+        absBakPos = (bakPos/cubel - floor(bakPos/cubel))*cubel;
+        cyc = floor(bakPos/cubel);        
+
+        if(fabs(absBakPos - position) > 0.5*cubel)cyc++;
+
+        position += (cyc*cubel);
+        position1 += (cyc*cubel);
+        position2 += (cyc*cubel);
 
         for(i=0; i<seq.size(); i++){
+            data[1][i] += (cubel*cyc);
+            data[2][i] += (cubel*cyc);
+            data[3][i] += (cubel*cyc);
             data[4][i] = 0.0;
             data[5][i] = 0.0;
             data[6][i] = 0.0;
@@ -205,20 +226,34 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         for(i=0; i<seq.size(); i++){
             data[0][i] += 0.5*cubel;
 
-            if(plu && min){
-                if(changed1[i]){
-                    data[1][i] += cubel;
-                }
-                if(changed2[i]){
-                    data[2][i] += cubel;
-                }
-            }
-
             data[4][i] /= ((double)seq.size());
             data[5][i] /= ((double)seq.size());
             data[6][i] /= ((double)seq.size());
         }
  
+        vec[8] = 0.0;
+        vec[9] = 0.0;
+        vec[10] = 0.0;
+        vec[11] = 0.0;
+
+        for(i=0; i<seq.size()-1; i++){
+            vec[8] += ((data[1][i] - position1)*(data[1][i] - position1));
+            vec[9] += ((data[2][i] - position2)*(data[2][i] - position2));
+            vec[10] += ((data[3][i] - position)*(data[3][i] - position));
+            vec[11] += ((fabs(data[1][i]-data[2][i]) - separation)*
+                       (fabs(data[1][i]-data[2][i]) - separation));
+        }
+
+        vec[8] /= (double(seq.size()-1));
+        vec[9] /= (double(seq.size()-1));
+        vec[10] /= (double(seq.size()-1));
+        vec[11] /= (double(seq.size()-1));
+
+        vec[8] = sqrt(vec[8]);
+        vec[9] = sqrt(vec[9]);
+        vec[10] = sqrt(vec[10]);
+        vec[11] = sqrt(vec[11]);
+
         swap(list.data, data);
         fileName = inArgs->outFiles[0];
 
@@ -239,9 +274,16 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 
         timenow = atof(words[1].c_str());
 
-        vec[0] = timenow;
-        vec[1] = separation;
-        vec[2] = position;
+        vec[0] = (real8)file;
+        vec[1] = timenow;
+        vec[2] = separation;
+        vec[3] = position1;
+        vec[4] = position2;
+        vec[5] = position;
+        vec[6] = 0.0;
+        vec[7] = 0.0;
+
+        bakPos = position;
 
         outs.push_back(vec);
 
@@ -250,9 +292,39 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     sort(outs.begin(), outs.end(), cmpvec); 
 
     for(i=0; i<outs.size(); i++){
-        out <<  setprecision(10)  << outs[i][0] << " ";
+        if(i>0){
+            pos1[1] = outs[i-1][5]; 
+        }else{
+            pos1[1] = 0.0;
+        }
+
+        dt = (i>0) ? (outs[i][1]-outs[i-1][1]) : outs[i][1];
+
+        pos2[1] = outs[i][5]; 
+        disp[1] = pos2[1] - pos1[1];
+
+        if(fabs(disp[1]) > 0.5*cubel){
+            for(j=i; j<outs.size(); j++){
+                outs[j][5] += cubel;
+            }
+        }
+        
+        ZImage(boundMin, boundMax, disp, disp+1, disp+2);
+        outs[i][6] = disp[1];
+        outs[i][7] = disp[1]/dt;
+
+        out <<  setprecision(5)   << outs[i][0] << " ";
         out <<  setprecision(10)  << outs[i][1] << " ";
-        out <<  setprecision(10)  << outs[i][2] << endl;
+        out <<  setprecision(10)  << outs[i][2] << " ";
+        out <<  setprecision(10)  << outs[i][3] << " ";
+        out <<  setprecision(10)  << outs[i][4] << " ";
+        out <<  setprecision(10)  << outs[i][5] << " ";
+        out <<  setprecision(10)  << outs[i][6] << " ";
+        out <<  setprecision(10)  << outs[i][7] << " ";
+        out <<  setprecision(10)  << outs[i][8] << " ";
+        out <<  setprecision(10)  << outs[i][9] << " ";
+        out <<  setprecision(10)  << outs[i][10] << " ";
+        out <<  setprecision(10)  << outs[i][11] << endl;
     }
     out.close();
     return;
