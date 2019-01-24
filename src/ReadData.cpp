@@ -10,8 +10,8 @@ using namespace std;
 
 int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 {
-    int         lineNo = 1, i, j;
-    string      str;
+    int         lineNo = 1, i, j, type;
+    string      str, v("v");
     ifstream    infile;
 
     vector<string>  line;
@@ -33,10 +33,32 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         printf("Warning: there is noting in the file %s", file.c_str());
         return (0);
     }
-    line = split(str, "=");
-    table.variables = split(line[1], ",");
-    for(i=0; i<table.variables.size(); i++)WashString(table.variables[i]);
-    col.resize(table.variables.size());
+
+    line = split(str, " ");
+    for(i=0; i<line.size(); i++){
+        if(atof(line[i].c_str()) == 0)break;
+    }
+    vector<string>().swap(line);
+
+    if(i==0){
+        line = split(str, "=");
+        table.variables = split(line[1], ",");
+        for(i=0; i<table.variables.size(); i++){
+            WashString(table.variables[i]);
+        }
+        vector<string>().swap(line);
+        col.resize(table.variables.size());
+    }else{
+        line = split(str, " ");
+        table.variables.resize(line.size());
+        col.resize(table.variables.size());
+        for(i=0;i<line.size();i++){
+            table.variables[i] = v + (char)i;
+            col[i] = atof(line[i].c_str());
+        }
+        table.data.push_back(col);
+    }
+
 
     j = 0;
     while(getline(infile,str))
@@ -45,12 +67,15 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         line = split(str, " ");
         if(lineNo == 2)secLine = str;
        
-        if(line.size() != table.variables.size())continue; 
+        if(line.size() != table.variables.size()){
+            continue; 
+        }
         for(i=0; i<col.size(); i++){
             col[i] = atof(line[i].c_str());
         }
         table.data.push_back(col);
         j++;
+        vector<string>().swap(line);
     }
     infile.close();
 //    printf("Finsish reading input file %s\n", file.c_str());    

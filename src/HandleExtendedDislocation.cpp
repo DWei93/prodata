@@ -28,9 +28,9 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     real8           rd, yi1, yj1, yk2, yk3, s, absBakPos, bakPos, cyc;
     int             index,  i, j, k, file, iPos;
     int             colX, colY, colBurgID;
-    bool            plu, min;
+    bool            plu, min, logFile=0;
     string          cubelName = "cubel", burgIDName = "burgID", remeshSizeName = "rsize";  
-    string          fileName, secLine, fdir, curDir("./"), fname, aveFile;
+    string          fileName, secLine, fdir, curDir("./"), fname, aveFile, auxFile;
     real8           separation = 0.0, position = 0.0, position1, position2, timenow, dt;
     real8           pos1[3] = {0,0,0}, pos2[3]={0,0,0}, disp[3] = {0,0,0};
     Point_t         p;
@@ -39,8 +39,13 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     LineList_t      list;
     
     vector<string>          words;
-    vector<real8>           seq, vec(12);
+    vector<real8>           seq, vec;
     vector<vector<double> > data(7), outs;  
+
+    Table_t         auxTable;
+    vector<Table_t> auxTables;
+
+    vec.resize(12);
 
     list.variables.push_back("x");
     list.variables.push_back("y1");
@@ -60,11 +65,13 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     }else{
         aveFile = inArgs->outFiles[1];
     }
-    ofstream out;
-    out.open(aveFile.c_str(), ios::out);
-    out << "variables = file, timeNow, separation, p1, p2, p, disp,";
-    out << " velocity, v_p1, v_p2, v_p, v_separation" << endl;
-    
+
+    if(inArgs->outFiles.size() < 3){
+        auxFile = "tecdata.plt";
+    }else{
+        auxFile = inArgs->outFiles[2];
+    }
+
     boundMin[0] = -0.5*cubel;
     boundMin[1] = -0.5*cubel;
     boundMin[2] = -0.5*cubel;
@@ -86,6 +93,33 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     }
     printf("The remesh size is %f\n", remeshSize);
     if(inArgs->help)return;
+
+    if(inArgs->auxFiles.size()>0){
+        auxTables.resize(inArgs->auxFiles.size());
+        for(file=0; file<inArgs->auxFiles.size(); file++){
+            ReadTecplotNormalData(inArgs->auxFiles[file], auxTables[file], secLine);
+        }
+        StitchTecplotData(auxTables, auxTable, 0);
+        if(auxTable.data.size() == 0){
+            Fatal("the aux table size is zero.");
+        }
+
+        logFile = 1;
+        WriteTecplotNormalData(auxTable, auxFile, 10);
+    }
+
+    ofstream out;
+    out.open(aveFile.c_str(), ios::out);
+    out << "variables = file, timenow, separation, p1, p2, p, disp,";
+    out << " velocity, v_p1, v_p2, v_p, v_separation";
+
+    if(logFile){
+        vec.resize(11+auxTable.variables.size());        
+        for(i=1; i<auxTable.variables.size(); i++){
+            out << ", " << auxTable.variables[i];
+        }
+    }
+    out << endl;    
 
     bakPos = 0.0;
     for(file=0; file<inArgs->inpFiles.size(); file++){
@@ -291,6 +325,29 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 
     sort(outs.begin(), outs.end(), cmpvec); 
 
+    if(logFile){
+        int     startID = 0;
+        for(i=0; i<outs.size(); i++){
+            
+            for(j=startID; j<auxTable.data.size(); j++){
+                if(outs[j][1] >= auxTable.data[i][0]*1.0E9)break;
+            }
+
+            if(j == auxTable.data.size()){
+                j = 0;
+            }
+
+            startID = j;
+
+            k = 11;
+
+            for(j=1; j< auxTable.variables.size(); j++){
+                k++;
+                outs[i][k] = auxTable.data[startID][j];
+            }
+        }
+    }
+
     for(i=0; i<outs.size(); i++){
         if(i>0){
             pos1[1] = outs[i-1][5]; 
@@ -313,18 +370,10 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         outs[i][6] = disp[1];
         outs[i][7] = disp[1]/dt;
 
-        out <<  setprecision(5)   << outs[i][0] << " ";
-        out <<  setprecision(10)  << outs[i][1] << " ";
-        out <<  setprecision(10)  << outs[i][2] << " ";
-        out <<  setprecision(10)  << outs[i][3] << " ";
-        out <<  setprecision(10)  << outs[i][4] << " ";
-        out <<  setprecision(10)  << outs[i][5] << " ";
-        out <<  setprecision(10)  << outs[i][6] << " ";
-        out <<  setprecision(10)  << outs[i][7] << " ";
-        out <<  setprecision(10)  << outs[i][8] << " ";
-        out <<  setprecision(10)  << outs[i][9] << " ";
-        out <<  setprecision(10)  << outs[i][10] << " ";
-        out <<  setprecision(10)  << outs[i][11] << endl;
+        for(j=0; j<outs[i].size(); j++){
+            out <<  setprecision(10)  << outs[i][j] << " ";
+        }
+        out << endl;
     }
     out.close();
     return;

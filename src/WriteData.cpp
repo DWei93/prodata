@@ -45,3 +45,41 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
 //    printf("Finsish writing output file %s\n", fn.c_str());    
     return;
 }
+
+void WriteTecplotNormalData(const Table_t &table, const string &file, double precision) 
+{
+    int     i, j;
+    string  fn(file), plt(".plt");
+
+    if(fn.length() > 4){
+        int loc = fn.find(plt, fn.length()-5); 
+        if(loc == string::npos){
+            fn += ".plt";
+        }
+    }else{
+        fn += ".plt";
+    }
+
+    ofstream out;
+    out.open(fn.c_str(), ios::out);
+
+    out << "variables = "; 
+    for(i=0; i<table.variables.size(); i++){
+        if(i<table.variables.size()-1){
+            out << table.variables[i] << ", ";
+        }else{
+            out << table.variables[i] << endl;
+        }
+    }
+
+    for(i=0; i<table.data.size(); i++){
+        for(j=0; j<table.variables.size(); j++){
+            out << setprecision(precision) << table.data[i][j] << " ";
+        }
+        out << endl;
+    }
+     
+    out.close();
+//    printf("Finsish writing output file %s\n", fn.c_str());    
+    return;
+}

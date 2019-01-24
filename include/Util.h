@@ -21,6 +21,8 @@
 
 #include "MD.h"
 
+#define  NUMBER_DATA    0x0001
+#define  CHAR_DATA      0x0002
 
 typedef struct {
     double  x,y,z;    
@@ -43,4 +45,8 @@ void SwapTable(Table_t &table);
 void SwapLineList(LineList_t &list);
 void CleanMgData(MgData_t &mg);
 void NormalizeVec(real8 vec[3]);
+void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID = 0);
+int DataType(const string &str);
+
+
 #endif

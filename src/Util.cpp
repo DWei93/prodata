@@ -2,6 +2,7 @@
 #include "Home.h"
 #include "Util.h"
 
+
 void Fatal(const char *format, ...) 
 {
         char    msg[512];
@@ -14,6 +15,34 @@ void Fatal(const char *format, ...)
         printf("ERROR: %s\n", msg);
 
         exit(1);
+}
+
+int DataType(const string &str)
+{
+    int     i, c = 0, n = 0, type;
+    char    s[512];
+
+    str.copy(s, str.length(), 0);
+    *(s+str.length()) = '\0';
+
+    for(i=0; i<str.length(); i++){
+        if(s[i] >= '0' && s[i] >= '9' && n==0){
+            n = 1;
+            if(c)break;
+        }
+
+        if((s[i] >= 'a' && s[i] <= 'z' ||
+           s[i] >= 'A' && s[i] <= 'Z') && c==0){
+            c = 1;
+            if(n)break;
+        }
+    }
+
+    type |= ((n==1) ? NUMBER_DATA : 0);
+    type |= ((c==1) ? CHAR_DATA : 0);
+    printf("%d %d, cd\n", n, c);
+
+    return(type);
 }
 
 
@@ -263,6 +292,52 @@ void NormalizeVec(real8 vec[3])
         return;
 }
 
+void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID)
+{
+    int         i, j, startID = 0;
+
+    if(tables.size() < 2)return;
+
+    vector<string>().swap(table.variables);
+    vector<vector<double> >().swap(table.data);
+
+    table.variables.resize(tables[0].variables.size());
+    for(i=0; i<tables[0].variables.size(); i++){
+        table.variables[i] = tables[0].variables[i];
+    }
+
+    for(i=0; i<tables[0].data.size(); i++){
+        table.data.push_back(tables[0].data[i]);
+    }    
+
+    for(i=1; i<tables.size(); i++){
+        if(tables[i].variables.size() != tables[0].variables.size())continue;
+
+        for(j=startID; j<table.data.size(); j++){
+            if(table.data[j][eigenID] >= tables[i].data[0][eigenID]){
+                break;
+            }
+        }
+        startID = j;
+
+        if(j < table.data.size()){
+            table.data.erase(table.data.begin()+j, table.data.end());
+        }
+       
+        for(j=0; j<tables[i].data.size(); j++){
+            table.data.push_back(tables[i].data[j]);
+        }
+    }
+
+    return;            
+}
+
+
+void StichData_DDD(InArgs_t *inArgs)
+{
+
+    return;
+}
 
 
 
