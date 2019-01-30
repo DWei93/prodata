@@ -330,11 +330,11 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         for(i=0; i<outs.size(); i++){
             
             for(j=startID; j<auxTable.data.size(); j++){
-                if(outs[j][1] >= auxTable.data[i][0]*1.0E9)break;
+                if(outs[i][1] <= auxTable.data[j][0]*1.0E9)break;
             }
 
             if(j == auxTable.data.size()){
-                j = 0;
+                j--;
             }
 
             startID = j;
