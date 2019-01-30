@@ -280,7 +280,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         swap(bakInps, inArgs->inpFiles);
         
         sort(inArgs->inpFiles.begin(), inArgs->inpFiles.end());
-        if(inArgs->auxFiles.size()>0){
+        if(inArgs->auxFiles.size() > 0){
             strs.resize(inArgs->auxFiles.size());
             vector<string>().swap(bakInps);
             for(i=0; i<inArgs->auxFiles.size(); i++){
@@ -292,6 +292,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
             }
             swap(bakInps, inArgs->auxFiles);
         }
+        sort(inArgs->auxFiles.begin(), inArgs->auxFiles.end());
 #if 0
         if(inArgs->inpFiles.size()>1){
             printf("Input files are:\n");

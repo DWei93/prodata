@@ -10,12 +10,12 @@ using namespace std;
 
 void AverageLines(InArgs_t *inArgs)
 {
-    int     index, i, j, k, colX, colY;
+    int     index, i, j, k, colX = -1, colY;
     int     readState;
     bool    firstFile = 1, calTau = 0;
     real8   rsize = 20, min, max, effNums = 0, value;
-    string  rsizeName("rsize"), varsName("vars");
-    string  str("Ave_"), secLine, tauName("tau");
+    string  rsizeName("rsize"), varsName("vars"), overName("over");
+    string  str("Ave_"), secLine, tauName("tau"), overVar;
 
     LineList_t  list;
     Curve_t     curve;
@@ -41,6 +41,8 @@ void AverageLines(InArgs_t *inArgs)
     }
 
     if((index = GetValID(inArgs->priVars, varsName)) < inArgs->priVars.size()){
+        int index2;        
+
         if(inArgs->priVars[index].vals.size() < 2){
             Fatal("variables is not enough for aveage line");
         }
@@ -49,11 +51,28 @@ void AverageLines(InArgs_t *inArgs)
         varID.resize(inArgs->priVars[index].vals.size());
 
         printf("The variables (vars) are ");
+        if((index2 = GetValID(inArgs->priVars, overName)) < inArgs->priVars.size()){
+            overVar = inArgs->priVars[index2].vals[0];
+        }else{
+            overVar = inArgs->priVars[index].vals[0];
+        }
+
         for(i=0; i<inArgs->priVars[index].vals.size(); i++){
             list.variables[i] = inArgs->priVars[index].vals[i];
             printf("%s ", list.variables[i].c_str());
+            if(overVar == list.variables[i]){
+                colX = i;
+            }
         }
-        printf("\n");
+        printf(", averaged over through %s (over).\n", overVar.c_str());
+
+        if(colX < 0){
+            Fatal("no %s in the variables.", overVar.c_str());
+        }
+
+        if(colX != 0){
+            swap(list.variables[0], list.variables[colX]);
+        }
     }
 
     if(inArgs->help)return;
@@ -77,11 +96,30 @@ void AverageLines(InArgs_t *inArgs)
                 varID.resize(list.variables.size());
             
                 printf("The average variables (vars) are: ");
+
+                if((index = GetValID(inArgs->priVars, overName)) < inArgs->priVars.size()){
+                    overVar = inArgs->priVars[index].vals[0];   
+                }else{
+                    overVar = tables[i].variables[0];
+                }
+
                 for(j=0; j<tables[i].variables.size(); j++){
                     list.variables[j] = tables[i].variables[j];
+
+                    if(overVar == list.variables[j]){
+                        colX = j;
+                    }
                     printf("%s ",list.variables[j].c_str());
                 }
-                printf("\n");
+                printf(", averaged over through %s (over).\n", overVar.c_str());
+
+                if(colX < 0){
+                    Fatal("no %s in the variables.", overVar.c_str());
+                }
+
+                if(colX != 0){
+                    swap(list.variables[0], list.variables[colX]);
+                }
             }
             min = tables[i].data[0][colX];
             max = tables[i].data[tables[i].data.size()-1][colX];
@@ -93,7 +131,7 @@ void AverageLines(InArgs_t *inArgs)
             }
         }
     }
-    printf("The effective range of %s is [%f,%f]\n", list.variables[0].c_str(), min, max);
+    printf("The effective range of %s is [%f,%f]\n", overVar.c_str(), min, max);
     printf("%d files was read\n", (int)effNums);
 
     seq = GenerateSequence(min, max, rsize);
@@ -124,7 +162,7 @@ void AverageLines(InArgs_t *inArgs)
             varID[j] = GetColIDFromTable(tables[i], list.variables[j]);
             if(varID[j] == tables[i].variables.size()){
                 Fatal("there is no %s in the file %s ", list.variables[j].c_str(), 
-                        inArgs->inpFiles[i].c_str());
+                      inArgs->inpFiles[i].c_str());
             }
 
             if(j==0){
@@ -135,7 +173,7 @@ void AverageLines(InArgs_t *inArgs)
                 }
             }else{
                 for(k=0; k<curve.ax.size(); k++){
-                    curve.ay[k] =  tables[i].data[k][varID[j]];
+                    curve.ay[k] = tables[i].data[k][varID[j]];
                 }
 
                 for(k=0; k<seq.size(); k++){
@@ -146,7 +184,6 @@ void AverageLines(InArgs_t *inArgs)
                     }
                 }
             }
-
         }
     }
 
@@ -157,7 +194,6 @@ void AverageLines(InArgs_t *inArgs)
         oriVals = list.variables.size();
         list.variables.resize(2*list.variables.size()-1);
         list.data.resize(list.variables.size());
-
 
         for(i=oriVals; i<list.variables.size(); i++){
             list.data[i].resize(seq.size());

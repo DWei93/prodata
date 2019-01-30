@@ -40,7 +40,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     }
     vector<string>().swap(line);
 
-    if(i==0){
+    if(i == 0){
         line = split(str, "=");
         table.variables = split(line[1], ",");
         for(i=0; i<table.variables.size(); i++){
@@ -48,6 +48,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         }
         vector<string>().swap(line);
         col.resize(table.variables.size());
+
     }else{
         line = split(str, " ");
         table.variables.resize(line.size());
@@ -78,6 +79,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         vector<string>().swap(line);
     }
     infile.close();
+
 //    printf("Finsish reading input file %s\n", file.c_str());    
     return 1;            
 }

@@ -296,7 +296,6 @@ void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID)
 {
     int         i, j, startID = 0;
 
-    if(tables.size() < 2)return;
 
     vector<string>().swap(table.variables);
     vector<vector<double> >().swap(table.data);
@@ -309,6 +308,8 @@ void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID)
     for(i=0; i<tables[0].data.size(); i++){
         table.data.push_back(tables[0].data[i]);
     }    
+
+    if(tables.size() == 1)return;
 
     for(i=1; i<tables.size(); i++){
         if(tables[i].variables.size() != tables[0].variables.size())continue;
