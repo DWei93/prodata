@@ -24,7 +24,7 @@
 
 
 int ReadTecplotNormalData(string &file, Table_t &table, string &secLine);
-void WriteTecplotNormalData(const Table_t &table, const string &file, double precision); 
+void WriteTecplotNormalData(const Table_t &table, const string &file, double precision, string secLine = ""); 
 void    WriteTecplotNormalData(const LineList_t &list, const string &file,
                                double precision = 6);
 int ReadMGDataFile(const string &file, MgData_t &mgdata);

@@ -46,7 +46,7 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
     return;
 }
 
-void WriteTecplotNormalData(const Table_t &table, const string &file, double precision) 
+void WriteTecplotNormalData(const Table_t &table, const string &file, double precision, string secLine) 
 {
     int     i, j;
     string  fn(file), plt(".plt");
@@ -70,6 +70,10 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
         }else{
             out << table.variables[i] << endl;
         }
+    }
+
+    if(secLine != ""){
+        out << secLine << endl;
     }
 
     for(i=0; i<table.data.size(); i++){

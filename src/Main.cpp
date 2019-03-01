@@ -29,6 +29,7 @@
 #include "MD.h"
 #include "Math.h"
 #include "Parse.h"
+#include "Util.h"
 
 using namespace std;
 
@@ -337,6 +338,8 @@ int main(int argc, char *argv[])
             case FTYPE_PROC_EXTEND_DIS_MD:
                 HandleExtendedDislocation_MD(&inArgs);
                 break;
+            case FTYPE_SPECIFY_EQUATIONS:
+                SpecifyEquations_PLTDATA(&inArgs);
         }
 
         exit(0);

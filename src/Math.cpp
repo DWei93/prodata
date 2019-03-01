@@ -12,9 +12,9 @@ void AverageLines(InArgs_t *inArgs)
 {
     int     index, i, j, k, colX = -1, colY;
     int     readState;
-    bool    firstFile = 1, calTau = 0;
+    bool    firstFile = 1, calTau = 0, specifyEqu = 0;
     real8   rsize = 20, min, max, effNums = 0, value;
-    string  rsizeName("rsize"), varsName("vars"), overName("over");
+    string  rsizeName("rsize"), varsName("vars"), overName("over"), specifyEquName("spe");
     string  str("Ave_"), secLine, tauName("tau"), overVar;
 
     LineList_t  list;
@@ -38,6 +38,15 @@ void AverageLines(InArgs_t *inArgs)
         printf("The variance (tau) will been caculated\n");
     }else{
         printf("The variance (tau) will not been caculated\n");
+    }
+
+    if((index = GetValID(inArgs->priVars, specifyEquName)) < inArgs->priVars.size()){
+        specifyEqu = atoi(inArgs->priVars[index].vals[0].c_str());
+    }
+    if(specifyEqu){
+        printf("Specifing equations (spe) is on.\n");
+    }else{
+        printf("Specifing equations (spe) is off.\n");
     }
 
     if((index = GetValID(inArgs->priVars, varsName)) < inArgs->priVars.size()){
@@ -81,9 +90,14 @@ void AverageLines(InArgs_t *inArgs)
         Fatal("There is no input file.");
     }
 
+    printf("Ranges of files:\n ");
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
+
+        if(specifyEqu){
+            SpecifyEquations(tables[i]);
+        }
 
         effNums++;
         if(tables[i].data.size() < 2){
@@ -130,6 +144,8 @@ void AverageLines(InArgs_t *inArgs)
                 max = tables[i].data[tables[i].data.size()-1][colX];
             }
         }
+
+        printf("[%f,%f]\n", tables[i].data[0][colX], tables[i].data[tables[i].data.size()-1][colX]);
     }
     printf("The effective range of %s is [%f,%f]\n", overVar.c_str(), min, max);
     printf("%d files was read\n", (int)effNums);

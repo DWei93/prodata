@@ -47,6 +47,8 @@ void CleanMgData(MgData_t &mg);
 void NormalizeVec(real8 vec[3]);
 void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID = 0);
 int DataType(const string &str);
+void SpecifyEquations_PLTDATA(InArgs_t *inArgs);
+void SpecifyEquations(Table_t &table);
 
 
 #endif

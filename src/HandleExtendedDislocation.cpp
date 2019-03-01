@@ -67,7 +67,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     }
 
     if(inArgs->outFiles.size() < 3){
-        auxFile = "tecdata.plt";
+        auxFile = "ss.plt";
     }else{
         auxFile = inArgs->outFiles[2];
     }
@@ -92,7 +92,6 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         remeshSize = atof(inArgs->priVars[index].vals[0].c_str());
     }
     printf("The remesh size is %f\n", remeshSize);
-    if(inArgs->help)return;
 
     if(inArgs->auxFiles.size()>0){
         auxTables.resize(inArgs->auxFiles.size());
@@ -107,6 +106,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         logFile = 1;
         WriteTecplotNormalData(auxTable, auxFile, 10);
     }
+    if(inArgs->help)return;
 
     ofstream out;
     out.open(aveFile.c_str(), ios::out);
