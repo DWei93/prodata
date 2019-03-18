@@ -15,6 +15,25 @@
 #include <vector>
 #include <list>
 
+#ifdef _OPENMP
+
+#include <omp.h>
+
+#define INIT_LOCK(a)    omp_init_lock((a))
+#define LOCK(a)         omp_set_lock((a))
+#define UNLOCK(a)       omp_unset_lock((a))
+#define DESTROY_LOCK(a) omp_destroy_lock((a))
+
+#else /* _OPENMP not defined */
+
+#define INIT_LOCK(a)
+#define LOCK(a)
+#define UNLOCK(a)
+#define DESTROY_LOCK(a)
+
+#endif /* end ifdef _OPENMP */
+
+
 #define real8 double
 using namespace std;
 
@@ -32,7 +51,7 @@ typedef struct {
 typedef struct {
         double  burgMag;
         int     seed;
-        int     type;
+        int     type, nThreads;
         bool    help;
 
         vector<string>  inpFiles, outFiles;
@@ -67,6 +86,7 @@ typedef	enum{
     OPT_TYPE,
     OPT_PRIVATEVALS,
     OPT_AUXFILE,
+    OPT_THREADS,
 	OPT_MAX
 }OPT_t;
 

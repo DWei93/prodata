@@ -261,10 +261,8 @@ void CleanMgData(MgData_t &mg)
 {
     int i;
     mg.timestep = 0;
-    for(i=0; i<6; i++){
-        mg.box[i] = 0.0;
-    }
 
+    vector<vector<double> >().swap(mg.box);
     vector<string>().swap(mg.bounds);
     vector<string>().swap(mg.variables);
     
@@ -334,99 +332,25 @@ void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID)
     return;            
 }
 
-void SpecifyEquations(Table_t &table)
-{
-#if 1
-    int     i, j;
-
-    int colBurgID =  GetColIDFromTable(table, "burgID");
-    int colIndex =  GetColIDFromTable(table, "index");
-
-    for(i=0; i<table.data.size(); i++){
-        real8 &burgID = table.data[i][colBurgID];
-        real8 &index = table.data[i][colIndex];
-
-        if(burgID > 6.5){
-            if(burgID == 7 || burgID == 12 || burgID == 17){
-                burgID = -1;
-            }else{
-                burgID = 7;
-            }
-        }
-    }
-
-#else
-    int     i, j;
-    bool    changed;
-    real8   tauAve, diff;
-    
-    vector<real8>   vec(3);
-    table.variables.push_back("tau_averaged_single");
-    table.variables.push_back("diff");
-
-    int colSigmaS1 = GetColIDFromTable(table, "sigma_sin1");
-    int colSS1 = GetColIDFromTable(table, "s_sin1");
-    int colTauS1 = GetColIDFromTable(table, "tau_sin1");
-
-    int colSigmaS2 = GetColIDFromTable(table, "sigma_sin2");
-    int colSS2 = GetColIDFromTable(table, "s_sin2");
-    int colTauS2 = GetColIDFromTable(table, "tau_sin2");
-
-    int colTauBic = GetColIDFromTable(table, "tau_bic");
-
-    for(i=0; i<table.data.size(); i++){
-
-        real8 &sigmaS1 = table.data[i][colSigmaS1];
-        real8 &sS1 = table.data[i][colSS1];
-        real8 &tauS1 = table.data[i][colTauS1];
-
-        real8 &sigmaS2 = table.data[i][colSigmaS2];
-        real8 &sS2 = table.data[i][colSS2];
-        real8 &tauS2 = table.data[i][colTauS2];
-        real8 tauBic = table.data[i][colTauBic];
-
-        changed = ((sigmaS1 > sigmaS2) ? 1 : 0);
-        if(changed){
-            vec[0] = sigmaS1;
-            vec[1] = sS1;
-            vec[2] = tauS1;
-
-            sigmaS1 = sigmaS2;
-            sS1 = sS2;
-            tauS1 = tauS2;
-
-            sigmaS2 = vec[0];
-            sS2 = vec[1];
-            tauS2 = vec[2];
-        }
-
-        if(sS1 == sS2){
-            tauAve = 0.5*(tauS1 + tauS2);
-        }else{
-            if(sS1 > sS2){
-                tauAve = tauS1;
-            }else{
-                tauAve = tauS2;
-            }
-        }
-
-        diff = tauBic - tauAve; 
-
-        table.data[i].push_back(tauAve);
-        table.data[i].push_back(diff);
-    }
-#endif
-    return;
-}
-
 
 void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
 {
-    int     i;
+    int     i, index;
     bool    readState;
-    string  secLine;
+    string  secLine, noBackupName = ("nobackup"), backupFile, sufBack = ("bak.");
+    char    name[256];
+    bool    backup = 1;
 
     vector<Table_t> tables;
+
+    if((index = GetValID(inArgs->priVars, noBackupName)) < inArgs->priVars.size()){
+        backup = 0;
+    }
+    if(backup){
+        printf("Backup: Yes.\n");
+    }else{
+        printf("Backup: NO! (nobackup)\n");
+    }
 
     if(inArgs->help)return;
 
@@ -438,10 +362,13 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
-
+        if(backup){
+            backupFile = sufBack + inArgs->inpFiles[i];
+            WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
+        }
         SpecifyEquations(tables[i]);
     
-        WriteTecplotNormalData(tables[i], inArgs->outFiles[i], 10, secLine); 
+        WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
     }
 
     return;

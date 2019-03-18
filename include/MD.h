@@ -28,8 +28,8 @@ typedef struct{
 
 typedef struct {
     int     timestep;
-    real8   box[6];
 
+    vector<vector<real8> > box;
     vector<string> bounds;
     vector<string> variables;
     vector<Atom_t> atom;

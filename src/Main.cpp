@@ -50,7 +50,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_SEED,          "seed",     	3, 1},
         {OPT_TYPE,          "type",     	1, 1},
         {OPT_PRIVATEVALS,   "d",            1, 1},
-        {OPT_AUXFILE,       "auxfile",      3, 1}     
+        {OPT_AUXFILE,       "auxfile",      3, 1},     
+        {OPT_THREADS,       "nthreads",     1, 1}     
 };
 
 
@@ -104,7 +105,11 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->seed       = time(0) + getpid();
         inArgs->type       = 0;
         inArgs->help       = 0;
-        	
+#ifdef _OPENMP
+        inArgs->nThreads   = 4;
+#else
+        inArgs->nThreads   = 1;
+#endif        	
         return;
 }
 
@@ -252,6 +257,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_AUXFILE:
                     swap(inArgs->auxFiles, argValues);
                     break;
+                case OPT_THREADS:
+                    inArgs->nThreads = atoi(argValue.c_str());
+                    break;
                 default:
                     break;
             }
@@ -324,6 +332,11 @@ int main(int argc, char *argv[])
         CheckArgSanity(&inArgs);
         PrintArgs(&inArgs); 
 
+#ifdef _OPENMP
+        omp_set_num_threads(inArgs.nThreads); 
+
+        printf("Threads count: %d \n", omp_get_max_threads());
+#endif
 /*
  *      All that's left is to invoke the proper function to
  *      handle data 

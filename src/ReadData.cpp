@@ -10,13 +10,18 @@ using namespace std;
 
 int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 {
+
     int         lineNo = 1, i, j, type;
     string      str, v("v");
     ifstream    infile;
 
+    string::size_type idx;
+
     vector<string>  line;
     vector<double>  col;
     infile.open(file.c_str());
+
+    secLine = "";
 
     if(!infile){
         printf("Warning: cant not the file %s", file.c_str());
@@ -60,17 +65,20 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         table.data.push_back(col);
     }
 
-
     j = 0;
     while(getline(infile,str))
     {   
+        if(str == "")continue;
         lineNo++;
         line = split(str, " ");
-        if(lineNo == 2)secLine = str;
-       
-        if(line.size() != table.variables.size()){
-            continue; 
+        if(lineNo == 2){
+            idx = str.find("=");
+            if(idx != string::npos){
+                secLine = str;
+                continue;
+            }
         }
+
         for(i=0; i<col.size(); i++){
             col[i] = atof(line[i].c_str());
         }
@@ -80,7 +88,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     }
     infile.close();
 
-//    printf("Finsish reading input file %s\n", file.c_str());    
+//    printf("Finish reading input file %s\n", file.c_str());    
     return 1;            
 }
 
@@ -129,6 +137,8 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                         mgdata.bounds[0] = words[3];
                         mgdata.bounds[1] = words[4];
                         mgdata.bounds[2] = words[5];
+                        
+                        mgdata.box.resize(3);
                         for(i=0; i<3; i++){
                             vector<string>().swap(subwords);
                             getline(infile,str);
@@ -136,14 +146,35 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                             if(subwords.size() != 2){
                                 Fatal("in file %s, can not read %s", file.c_str(), str.c_str());
                             }
-                            mgdata.box[i*2] = atof(subwords[0].c_str());
-                            mgdata.box[1+i*2] = atof(subwords[1].c_str());
+                            mgdata.box[i].resize(2);
+                            mgdata.box[i][0] = atof(subwords[0].c_str());
+                            mgdata.box[i][1] = atof(subwords[1].c_str());
                         }
+                    }
+                }else if(words.size() == 9){
+                    mgdata.bounds.resize(6);
+                    for(i=0; i<6; i++){
+                        mgdata.bounds[i] = words[3+i];
+                    }
+                    mgdata.box.resize(3);
+
+                    for(i=0; i<3; i++){
+                        vector<string>().swap(subwords);
+                        getline(infile,str);
+                        subwords = split(str, " ");
+                        if(subwords.size() != 3){
+                            Fatal("in file %s, can not read %s", file.c_str(), str.c_str());
+                        }
+                        mgdata.box[i].resize(3);
+                        mgdata.box[i][0] = atof(subwords[0].c_str());
+                        mgdata.box[i][1] = atof(subwords[1].c_str());
+                        mgdata.box[i][2] = atof(subwords[2].c_str());
+
                     }
                 } 
              }else if(words[1] == "ATOMS"){
                 if(words.size()<=7){
-                    printf("Waring: in file %s, can not read %s", file.c_str(), str.c_str());
+                    printf("Waring: in file %s, can not read %s - 1\n", file.c_str(), str.c_str());
                     return(0);
                 }
 
@@ -167,7 +198,7 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                     getline(infile,str);
                     subwords = split(str, " ");
                     if(subwords.size() != mgdata.variables.size()+5){
-                        printf("Warning: in file %s, can not read %s", file.c_str(), str.c_str());
+                        printf("Warning: in file %s, can not read %s - 2\n", file.c_str(), str.c_str());
                         return (0);
                     }
 
