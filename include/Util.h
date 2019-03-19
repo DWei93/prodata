@@ -21,6 +21,11 @@
 
 #include "MD.h"
 
+#define DotProduct(vec1,vec2)       \
+            ((vec1[0])*(vec2[0]) +  \
+             (vec1[1])*(vec2[1]) +  \
+             (vec1[2])*(vec2[2]))
+
 #define  NUMBER_DATA    0x0001
 #define  CHAR_DATA      0x0002
 
@@ -49,6 +54,7 @@ void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID = 0)
 int DataType(const string &str);
 void SpecifyEquations_PLTDATA(InArgs_t *inArgs);
 void SpecifyEquations(Table_t &table);
+void FormatVector(real8 vec[3], const char *msg);
 
 
 #endif

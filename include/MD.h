@@ -36,5 +36,6 @@ typedef struct {
 }MgData_t;
 
 void HandleExtendedDislocation_MD(InArgs_t *inArgs);
+void GenerateDislocation(InArgs_t *inArgs);
 
 #endif

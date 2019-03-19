@@ -121,7 +121,6 @@ vector<double>  GenerateSequence(double from, double to, double meshSize)
     return(seq);
 }
 
-
 void FoldBox(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z)
 {
         real8   xc, yc, zc;
@@ -373,4 +372,9 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
 
     return;
 
+}
+
+void FormatVector(real8 vec[3], const char *msg){
+	printf("%s vector:\n",msg);
+	printf("{%.15f,%.15f,%.15f}\n", vec[0], vec[1], vec[2]);
 }

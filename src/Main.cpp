@@ -353,6 +353,10 @@ int main(int argc, char *argv[])
                 break;
             case FTYPE_SPECIFY_EQUATIONS:
                 SpecifyEquations_PLTDATA(&inArgs);
+                break;
+            case FTYPE_GENERATE_DISLOCATION:
+                GenerateDislocation(&inArgs);
+                break;
         }
 
         exit(0);

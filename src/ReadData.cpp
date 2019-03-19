@@ -173,7 +173,7 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                     }
                 } 
              }else if(words[1] == "ATOMS"){
-                if(words.size()<=7){
+                if(words.size()<7){
                     printf("Waring: in file %s, can not read %s - 1\n", file.c_str(), str.c_str());
                     return(0);
                 }
