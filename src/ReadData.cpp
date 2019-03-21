@@ -93,7 +93,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 }
 
 
-int ReadMGDataFile(const string &file, MgData_t &mgdata)
+int ReadDumpFile(const string &file, Dump_t &dum)
 {
     int         i, j, atoms;
     int         idCol = 0, typeCol = 0;
@@ -101,7 +101,7 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
     ifstream    infile;
     string      str;
 
-    CleanMgData(mgdata);
+    CleanDump(dum);
 
     infile.open(file.c_str());
 
@@ -122,7 +122,7 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
         if(words[0] == "ITEM:"){
             if(words[1] == "TIMESTEP"){
                 getline(infile,str);
-                mgdata.timestep = atoi(str.c_str());
+                dum.timestep = atoi(str.c_str());
             }else if(words[1] == "NUMBER"){
                 if(words.size()==4){
                     if(words[2] == "OF" && words[3] == "ATOMS"){
@@ -133,12 +133,12 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
             }else if(words[1] == "BOX"){
                 if(words.size()==6){
                     if(words[2] == "BOUNDS"){
-                        mgdata.bounds.resize(3);
-                        mgdata.bounds[0] = words[3];
-                        mgdata.bounds[1] = words[4];
-                        mgdata.bounds[2] = words[5];
+                        dum.bounds.resize(3);
+                        dum.bounds[0] = words[3];
+                        dum.bounds[1] = words[4];
+                        dum.bounds[2] = words[5];
                         
-                        mgdata.box.resize(3);
+                        dum.box.resize(3);
                         for(i=0; i<3; i++){
                             vector<string>().swap(subwords);
                             getline(infile,str);
@@ -146,17 +146,17 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                             if(subwords.size() != 2){
                                 Fatal("in file %s, can not read %s", file.c_str(), str.c_str());
                             }
-                            mgdata.box[i].resize(2);
-                            mgdata.box[i][0] = atof(subwords[0].c_str());
-                            mgdata.box[i][1] = atof(subwords[1].c_str());
+                            dum.box[i].resize(2);
+                            dum.box[i][0] = atof(subwords[0].c_str());
+                            dum.box[i][1] = atof(subwords[1].c_str());
                         }
                     }
                 }else if(words.size() == 9){
-                    mgdata.bounds.resize(6);
+                    dum.bounds.resize(6);
                     for(i=0; i<6; i++){
-                        mgdata.bounds[i] = words[3+i];
+                        dum.bounds[i] = words[3+i];
                     }
-                    mgdata.box.resize(3);
+                    dum.box.resize(3);
 
                     for(i=0; i<3; i++){
                         vector<string>().swap(subwords);
@@ -165,10 +165,10 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                         if(subwords.size() != 3){
                             Fatal("in file %s, can not read %s", file.c_str(), str.c_str());
                         }
-                        mgdata.box[i].resize(3);
-                        mgdata.box[i][0] = atof(subwords[0].c_str());
-                        mgdata.box[i][1] = atof(subwords[1].c_str());
-                        mgdata.box[i][2] = atof(subwords[2].c_str());
+                        dum.box[i].resize(3);
+                        dum.box[i][0] = atof(subwords[0].c_str());
+                        dum.box[i][1] = atof(subwords[1].c_str());
+                        dum.box[i][2] = atof(subwords[2].c_str());
 
                     }
                 } 
@@ -179,7 +179,7 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                 }
 
                 varCol.resize(words.size()-7);
-                mgdata.variables.resize(words.size()-7);
+                dum.variables.resize(words.size()-7);
                 j = 0;
                 for(i=2; i<words.size(); i++){
                     if(words[i] == "x"){xCol = i-2;        continue;}
@@ -187,30 +187,30 @@ int ReadMGDataFile(const string &file, MgData_t &mgdata)
                     if(words[i] == "z"){zCol = i-2;        continue;}
                     if(words[i] == "id"){idCol = i-2;      continue;}
                     if(words[i] == "type"){typeCol = i-2;  continue;}
-                    mgdata.variables[j] = words[i];
+                    dum.variables[j] = words[i];
                     varCol[j] = i-2;
                     j++;
                 } 
 
-                mgdata.atom.resize(atoms);
-                for(i=0; i<mgdata.atom.size(); i++){
+                dum.atom.resize(atoms);
+                for(i=0; i<dum.atom.size(); i++){
                     vector<string>().swap(subwords);
                     getline(infile,str);
                     subwords = split(str, " ");
-                    if(subwords.size() != mgdata.variables.size()+5){
+                    if(subwords.size() != dum.variables.size()+5){
                         printf("Warning: in file %s, can not read %s - 2\n", file.c_str(), str.c_str());
                         return (0);
                     }
 
-                    mgdata.atom[i].x = atof(subwords[xCol].c_str());
-                    mgdata.atom[i].y = atof(subwords[yCol].c_str());
-                    mgdata.atom[i].z = atof(subwords[zCol].c_str());
-                    mgdata.atom[i].id = atoi(subwords[idCol].c_str());
-                    mgdata.atom[i].type = atoi(subwords[typeCol].c_str());
+                    dum.atom[i].x = atof(subwords[xCol].c_str());
+                    dum.atom[i].y = atof(subwords[yCol].c_str());
+                    dum.atom[i].z = atof(subwords[zCol].c_str());
+                    dum.atom[i].id = atoi(subwords[idCol].c_str());
+                    dum.atom[i].type = atoi(subwords[typeCol].c_str());
 
-                    mgdata.atom[i].vars.resize(mgdata.variables.size());
-                    for(j=0; j<mgdata.variables.size(); j++){
-                        mgdata.atom[i].vars[j] = atof(subwords[varCol[j]].c_str());
+                    dum.atom[i].vars.resize(dum.variables.size());
+                    for(j=0; j<dum.variables.size(); j++){
+                        dum.atom[i].vars[j] = atof(subwords[varCol[j]].c_str());
                     }
                 }
             }else{

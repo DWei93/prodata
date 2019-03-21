@@ -91,57 +91,57 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
 }
 
 
-int WriteMGDataFile(const string &file, MgData_t &mg, int precision) 
+int WriteDumpFile(const string &file, Dump_t &dum, int precision) 
 {
     int     i, j;
-    string  fn(file), plt(".mg");
+    string  fn(file), plt(".dum");
 
-    if(fn.length() > 3){
-        int loc = fn.find(plt, fn.length()-4); 
+    if(fn.length() > 4){
+        int loc = fn.find(plt, fn.length()-5); 
         if(loc == string::npos){
-            fn += ".mg";
+            fn += ".dum";
         }
     }else{
-        fn += ".mg";
+        fn += ".dum";
     }
 
     ofstream out;
     out.open(fn.c_str(), ios::out);
     
     out << "ITEM: TIMESTEP" << endl;
-    out << mg.timestep << endl;
+    out << dum.timestep << endl;
 
     out << "ITEM: NUMBER OF ATOMS" << endl;
-    out << mg.atom.size() << endl;
+    out << dum.atom.size() << endl;
     
     out << "ITEM: BOX BOUNDS";
-    for(i=0; i<mg.bounds.size(); i++){
-        out << " " << mg.bounds[i];
+    for(i=0; i<dum.bounds.size(); i++){
+        out << " " << dum.bounds[i];
     }
     out << endl;
 
-    for(i=0; i<mg.box.size(); i++){
-        for(j=0; j<mg.box[i].size(); j++){
-            out <<  setprecision(precision) << mg.box[i][j] << " ";
+    for(i=0; i<dum.box.size(); i++){
+        for(j=0; j<dum.box[i].size(); j++){
+            out <<  setprecision(precision) << dum.box[i][j] << " ";
         }
         out << endl;
     }
 
     out << "ITEM: ATOMS id type x y z";
-    for(i=0; i<mg.variables.size(); i++){
-        out << " " << mg.variables[i];
+    for(i=0; i<dum.variables.size(); i++){
+        out << " " << dum.variables[i];
     }
     out << endl;
 
-    for(i=0; i<mg.atom.size(); i++){
-        out << mg.atom[i].id << " ";
-        out << mg.atom[i].type << " ";
-        out << setprecision(precision) << mg.atom[i].x << " ";
-        out << setprecision(precision) << mg.atom[i].y << " ";
-        out << setprecision(precision) << mg.atom[i].z << " ";
+    for(i=0; i<dum.atom.size(); i++){
+        out << dum.atom[i].id << " ";
+        out << dum.atom[i].type << " ";
+        out << setprecision(precision) << dum.atom[i].x << " ";
+        out << setprecision(precision) << dum.atom[i].y << " ";
+        out << setprecision(precision) << dum.atom[i].z << " ";
         
-        for(j=0; j<mg.atom[i].vars.size(); j++){
-            out << setprecision(precision) << mg.atom[i].vars[j] << " "; 
+        for(j=0; j<dum.atom[i].vars.size(); j++){
+            out << setprecision(precision) << dum.atom[i].vars[j] << " "; 
         }
         out << endl;
     }
@@ -152,7 +152,7 @@ int WriteMGDataFile(const string &file, MgData_t &mg, int precision)
 
 
 
-int MGToLMPDataFile(const string &file, MgData_t &mg, int precision)
+int MGToLMPDataFile(const string &file, Dump_t &dum, int precision)
 {
     int     i, j, nTypes = 0;
     string  fn(file), plt(".lmp");
@@ -174,24 +174,24 @@ int MGToLMPDataFile(const string &file, MgData_t &mg, int precision)
 
     out << "LMMPS: " << dt << endl;
 
-    out << mg.atom.size() << " atoms" << endl << endl;
+    out << dum.atom.size() << " atoms" << endl << endl;
 
-    for(i=0; i<mg.atom.size(); i++){
-        nTypes = MAX(nTypes, mg.atom[i].type);
+    for(i=0; i<dum.atom.size(); i++){
+        nTypes = MAX(nTypes, dum.atom[i].type);
     }
     out << nTypes << " atom types" << endl << endl;
 
-    out << setprecision(precision) << mg.box[0][0] << " " << mg.box[0][1] << " xlo xhi" << endl;
-    out << setprecision(precision) << mg.box[1][0] << " " << mg.box[1][1] << " ylo yhi" << endl;
-    out << setprecision(precision) << mg.box[2][0] << " " << mg.box[2][1] << " zlo zhi" << endl;
+    out << setprecision(precision) << dum.box[0][0] << " " << dum.box[0][1] << " xlo xhi" << endl;
+    out << setprecision(precision) << dum.box[1][0] << " " << dum.box[1][1] << " ylo yhi" << endl;
+    out << setprecision(precision) << dum.box[2][0] << " " << dum.box[2][1] << " zlo zhi" << endl;
 
     out << endl << "Atoms" << endl << endl;
 
-    for(i=0; i<mg.atom.size(); i++){
-        out << mg.atom[i].id << " "<< mg.atom[i].type << " ";
-        out << setprecision(precision) << mg.atom[i].x << " ";
-        out << setprecision(precision) << mg.atom[i].y << " ";
-        out << setprecision(precision) << mg.atom[i].z << endl;
+    for(i=0; i<dum.atom.size(); i++){
+        out << dum.atom[i].id << " "<< dum.atom[i].type << " ";
+        out << setprecision(precision) << dum.atom[i].x << " ";
+        out << setprecision(precision) << dum.atom[i].y << " ";
+        out << setprecision(precision) << dum.atom[i].z << endl;
     }
 
     out.close();

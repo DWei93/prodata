@@ -48,7 +48,7 @@ void ZImage(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z);
 real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min = -1, real8 max = -1);
 void SwapTable(Table_t &table);
 void SwapLineList(LineList_t &list);
-void CleanMgData(MgData_t &mg);
+void CleanDump(Dump_t &dum);
 void NormalizeVec(real8 vec[3]);
 void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID = 0);
 int DataType(const string &str);

@@ -256,19 +256,19 @@ void SwapLineList(LineList_t &list){
 }
 
 
-void CleanMgData(MgData_t &mg)
+void CleanDump(Dump_t &dum)
 {
     int i;
-    mg.timestep = 0;
+    dum.timestep = 0;
 
-    vector<vector<double> >().swap(mg.box);
-    vector<string>().swap(mg.bounds);
-    vector<string>().swap(mg.variables);
+    vector<vector<double> >().swap(dum.box);
+    vector<string>().swap(dum.bounds);
+    vector<string>().swap(dum.variables);
     
-    for(i=0; i<mg.atom.size(); i++){
-        vector<double>().swap(mg.atom[i].vars);
+    for(i=0; i<dum.atom.size(); i++){
+        vector<double>().swap(dum.atom[i].vars);
     }
-    vector<Atom_t>().swap(mg.atom);
+    vector<Atom_t>().swap(dum.atom);
 
     return;
 }

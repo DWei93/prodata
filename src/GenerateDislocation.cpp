@@ -13,9 +13,11 @@ using namespace std;
 void GenerateScrewDislocation(InArgs_t *inArgs)
 {
     int         index, i;    
-    MgData_t    mg;
+    Dump_t    dum;
     string      posName("pos"), lineName("line"), gDirName("gdir"), burgMagName("burgMag");
-    
+    string      screwTypeName("stype"), multiDisName("multi");
+    int         screwType = 0, nPairs = 1;
+    double      rsize = 0, delta;
 
     real8       pos[3] = {0.0, 0.0, 0.0};
     real8       line[3] = {1.0, 0.0, 0.0};
@@ -55,56 +57,87 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
     }
     printf("The magnitude of dislocation (burgMag): %f\n", burgMag);
 
+    if((index = GetValID(inArgs->priVars, screwTypeName)) < inArgs->priVars.size()){
+         screwType = atoi(inArgs->priVars[index].vals[0].c_str());
+    }
+    printf("The type of screw dislocation (stype): %d\n", screwType);
+
+    if((index = GetValID(inArgs->priVars,  multiDisName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size() == 3){
+            nPairs = atoi(inArgs->priVars[index].vals[0].c_str());
+            rsize = atof(inArgs->priVars[index].vals[1].c_str());
+            delta = atof(inArgs->priVars[index].vals[2].c_str()); 
+        }
+    }
+    printf("Multi-pairs (multi): %d pairs with a mesh size %f\n", nPairs, rsize);
 
     NormalizeVec(gDir);
     NormalizeVec(line);
     cross(gDir, line, normal);
     NormalizeVec(normal);
+    FormatVector(normal, "normal");
 
     if(fabs(DotProduct(line, gDir)) > 1.0E-5)Fatal("the glide direction should be prependicular to the line direction");
 
     if(inArgs->help)return;
 
-    ReadMGDataFile(inArgs->inpFiles[0], mg);
+    ReadDumpFile(inArgs->inpFiles[0], dum);
 
     for(i=0; i<3; i++){
-        boundMin[i] = mg.box[i][0];
-        boundMax[i] = mg.box[i][1];
+        boundMin[i] = dum.box[i][0];
+        boundMax[i] = dum.box[i][1];
     } 
 
-#pragma omp parallel private(i) shared(mg)
-    {
-        real8  point[3], dvec[3], dis, vec[3], a, b, shift;
+    real8  point[3], dvec[3], dis, vec[3], a, b, shift;
 
-        for(i=0; i<mg.atom.size(); i++){
-            point[0] = mg.atom[i].x;
-            point[1] = mg.atom[i].y;
-            point[2] = mg.atom[i].z;
-//            printf("%f %f %f %d\n", mg.atom[i].x, mg.atom[i].y, mg.atom[i].z, mg.atom[i].id);
+    while(nPairs > 0){
 
+#pragma omp parallel for private(point, dvec, dis, vec, a, b, shift) shared(dum)
+        for(i=0; i<dum.atom.size(); i++){
+            point[0] = dum.atom[i].x;
+            point[1] = dum.atom[i].y;
+            point[2] = dum.atom[i].z;
+//            printf("%f %f %f %d\n", dum.atom[i].x, dum.atom[i].y, dum.atom[i].z, dum.atom[i].id);
+        
             if(POINT_INTERSECTION == PointLineIntersection(point, line, pos, dvec, &dis)){
+//                printf("%d: %f %f %f - %f %f %f  @@ %f\n", i, pos[0], pos[1], pos[2], point[0], point[1], point[2], dis);
                 continue;
             }
-
+        
             vec[0] = dvec[0] - point[0];
             vec[1] = dvec[1] - point[1];
             vec[2] = dvec[2] - point[2];
-
+        
             a = DotProduct(vec, gDir);
             b = DotProduct(vec, normal); 
-
-            shift = (0.5*burgMag*atan2(a, b)/M_PI);
-
-            mg.atom[i].x += (shift*line[0]);
-            mg.atom[i].y += (shift*line[1]);
-            mg.atom[i].z += (shift*line[2]);
-
-            FoldBox(boundMin, boundMax, &(mg.atom[i].x), &(mg.atom[i].y), &(mg.atom[i].z));
+        
+            if(screwType == 0){
+                shift = (0.5*burgMag*atan2(b, a)/M_PI);
+            }else{
+                shift = (0.5*burgMag*(M_PI + atan2(b, a)/M_PI));
+            }
+        
+            dum.atom[i].x += (shift*line[0]);
+            dum.atom[i].y += (shift*line[1]);
+            dum.atom[i].z += (shift*line[2]);
+        
+//            FoldBox(boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
         }
+
+        printf("pair %d: burgMag %f, position {%f,%f,%f}, rsize %f\n", nPairs, burgMag, pos[0], pos[1], pos[2], rsize);
+        pos[0] += (rsize*gDir[0]);
+        pos[1] += (rsize*gDir[1]);
+        pos[2] += (rsize*gDir[2]);
+
+        burgMag = -burgMag;
+
+        rsize = delta;
+        nPairs--;
+        
     }
 
-//    WriteMGDataFile(inArgs->outFiles[0], mg); 
-    MGToLMPDataFile(inArgs->outFiles[0], mg);
+    WriteDumpFile(inArgs->outFiles[0], dum); 
+    MGToLMPDataFile(inArgs->outFiles[0], dum);
     return;
 }
 

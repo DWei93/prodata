@@ -33,7 +33,7 @@ typedef struct {
     vector<string> bounds;
     vector<string> variables;
     vector<Atom_t> atom;
-}MgData_t;
+}Dump_t;
 
 void HandleExtendedDislocation_MD(InArgs_t *inArgs);
 void GenerateDislocation(InArgs_t *inArgs);

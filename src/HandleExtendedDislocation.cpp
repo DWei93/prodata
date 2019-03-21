@@ -424,7 +424,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
     int         stepID;
     double      cutofflen = 2.556, alpha = 0.1, beta = 1.0;
     double      position[3];
-    MgData_t    mg;
+    Dump_t    dum;
     LineList_t  list;
     double      dir[3] = {0, 1, 0}, p0[3], dval=5, effeSepRange[2] = {1.0,40.0}; 
     bool        noP0 = 1;
@@ -501,41 +501,41 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         states[file].timestep = 1E10;
     }
 
-#pragma omp parallel for private(mg, it, i, j, indexVar, firstNbr, lastIndex, dis, minDis) shared(states) 
+#pragma omp parallel for private(dum, it, i, j, indexVar, firstNbr, lastIndex, dis, minDis) shared(states) 
     for(file=0; file<inArgs->inpFiles.size(); file++){
         #pragma omp critical
         {
-            ReadMGDataFile(inArgs->inpFiles[file], mg);
+            ReadDumpFile(inArgs->inpFiles[file], dum);
         }
 
-        for(i=0; i<mg.variables.size(); i++){
-            if(dvar == mg.variables[i])break;
+        for(i=0; i<dum.variables.size(); i++){
+            if(dvar == dum.variables[i])break;
         }
-        if((indexVar = i) == mg.variables.size()){
-            Fatal("There is no %s in the mg file %s", dvar.c_str(), 
+        if((indexVar = i) == dum.variables.size()){
+            Fatal("There is no %s in the dum file %s", dvar.c_str(), 
                     inArgs->inpFiles[file].c_str());
         }
         
-        for(i=0; i<mg.atom.size(); ){
-            if(mg.atom[i].vars[indexVar] != dval){
-                mg.atom.erase(mg.atom.begin()+i);
+        for(i=0; i<dum.atom.size(); ){
+            if(dum.atom[i].vars[indexVar] != dval){
+                dum.atom.erase(dum.atom.begin()+i);
                 continue;
             }
 
-            if(mg.atom[i].x < mg.box[0][0] + 2 ||
-               mg.atom[i].y < mg.box[1][0] + 2 ||
-               mg.atom[i].z < mg.box[2][0] + 2 ||
-               mg.atom[i].x > mg.box[0][1] - 2 ||
-               mg.atom[i].y > mg.box[1][1] - 2 ||
-               mg.atom[i].z > mg.box[2][1] - 2){
-                mg.atom.erase(mg.atom.begin()+i);
+            if(dum.atom[i].x < dum.box[0][0] + 2 ||
+               dum.atom[i].y < dum.box[1][0] + 2 ||
+               dum.atom[i].z < dum.box[2][0] + 2 ||
+               dum.atom[i].x > dum.box[0][1] - 2 ||
+               dum.atom[i].y > dum.box[1][1] - 2 ||
+               dum.atom[i].z > dum.box[2][1] - 2){
+                dum.atom.erase(dum.atom.begin()+i);
                 continue;
             }
 
             i++;
         }
 
-        if(mg.atom.size() == 0){
+        if(dum.atom.size() == 0){
             continue;
         }
         
@@ -543,12 +543,12 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
             Fatal("The initial probe point (p0) is %f %f %f\n", p0[0], p0[1], p0[2]);
         }
 
-        sort(mg.atom.begin(), mg.atom.end(), com);
+        sort(dum.atom.begin(), dum.atom.end(), com);
 
         vector<Probe_t> probes;
         Probe_t         probe;
 
-        probe.y = mg.atom[0].y;
+        probe.y = dum.atom[0].y;
         probe.z = p0[2];
 
         lastIndex = 0;  
@@ -557,9 +557,9 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 
             firstNbr = 1;
             minDis = 1E10;
-            for(i=lastIndex; i<mg.atom.size(); i++){
-                dis = sqrt(pow((mg.atom[i].y-probe.y), 2) +
-                      pow((mg.atom[i].z-probe.z), 2) );
+            for(i=lastIndex; i<dum.atom.size(); i++){
+                dis = sqrt(pow((dum.atom[i].y-probe.y), 2) +
+                      pow((dum.atom[i].z-probe.z), 2) );
                 if(dis < minDis){
                     minDis = dis;
                 }
@@ -569,14 +569,14 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                         lastIndex = i;
                         firstNbr = 0;
                     }
-                    probe.nbr.push_back(&mg.atom[i]);
+                    probe.nbr.push_back(&dum.atom[i]);
                 }
             }
             if(probe.nbr.size() > nums[0] && probe.nbr.size()<nums[1]){
                 probes.push_back(probe);
                 vector<Atom_t *>().swap(probe.nbr);
             }
-            if(probe.y > mg.atom.back().y)break;
+            if(probe.y > dum.atom.back().y)break;
 
             if(minDis < alpha){
                 probe.x += (dir[0]*alpha);
@@ -613,7 +613,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                 states[file].x = (probes[0].x+probes.back().x)*0.5;
                 states[file].y = (probes[0].y+probes.back().y)*0.5;
                 states[file].z = (probes[0].z+probes.back().z)*0.5;
-                states[file].timestep = mg.timestep;
+                states[file].timestep = dum.timestep;
                 states[file].separation = separation;
 
                 if(logfile ==1){
