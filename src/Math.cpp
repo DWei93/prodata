@@ -410,18 +410,20 @@ int PointLineIntersection(double *p1, double *d, double *p2,
 
     norm2 = sqrt(SQUARE(p1x-p2x) + SQUARE(p1y-p2y) + SQUARE(p1z-p2z));
     if(norm2 < EPS1){
-        vec[0] = p1[0];
-        vec[1] = p1[1];
-        vec[2] = p1[2];
+        vec[0] = p2[0];
+        vec[1] = p2[1];
+        vec[2] = p2[2];
         *dis = 0.0;
+        printf("0");
         return(POINT_INTERSECTION);
     }
 
-    if(fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z)) < EPS1 * norm *norm2){
+    if(fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z)) > norm*norm2*(1-EPS1)){
         vec[0] = p1[0];
         vec[1] = p1[1];
         vec[2] = p1[2];
         *dis = 0.0;
+        printf("0");
         return(POINT_INTERSECTION);
     }
 
@@ -435,14 +437,9 @@ int PointLineIntersection(double *p1, double *d, double *p2,
     if(isnan(*dis) || isinf(*dis)){
         printf(" PointLineIntersection: %f {%f,%f,%f}\n", 
                *dis, vec[0], vec[1], vec[2]);
-
-        FormatVector(p1, "p1");
-        FormatVector(d, "d");
-        FormatVector(p2, "p2");
         vec[0] = p1[0];
         vec[1] = p1[1];
         vec[2] = p1[2];
-        Fatal("\n");
     }
 
     if(isnan(*dis))*dis = 0.0;

@@ -392,6 +392,8 @@ typedef struct {
 typedef struct {
     long int timestep;
     double x,y,z;
+    double absy;
+    double vy;
     double separation;
     vector<double> vars;
 }EDState_t;
@@ -410,11 +412,15 @@ bool com(Atom_t p, Atom_t q){
 
 bool com2(Probe_t p, Probe_t q)
 {
-    return(p.y<p.y);
+    return(p.y<q.y);
 }
 bool com3(EDState_t p, EDState_t q)
 {
     return(p.timestep<q.timestep);
+}
+bool com4(Probe_t p, Probe_t q)
+{
+    return(p.nbr.size() > q.nbr.size());
 }
 
 void HandleExtendedDislocation_MD(InArgs_t *inArgs)
@@ -517,20 +523,20 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         }
         
         for(i=0; i<dum.atom.size(); ){
+            if(dum.atom[i].x < dum.box[0][0] + 5 ||
+               dum.atom[i].y < dum.box[1][0] + 5 ||
+               dum.atom[i].z < dum.box[2][0] + 5 ||
+               dum.atom[i].x > dum.box[0][1] - 5 ||
+               dum.atom[i].y > dum.box[1][1] - 5 ||
+               dum.atom[i].z > dum.box[2][1] - 5){
+                dum.atom.erase(dum.atom.begin()+i);
+                continue;
+            }
             if(dum.atom[i].vars[indexVar] != dval){
                 dum.atom.erase(dum.atom.begin()+i);
                 continue;
             }
 
-            if(dum.atom[i].x < dum.box[0][0] + 2 ||
-               dum.atom[i].y < dum.box[1][0] + 2 ||
-               dum.atom[i].z < dum.box[2][0] + 2 ||
-               dum.atom[i].x > dum.box[0][1] - 2 ||
-               dum.atom[i].y > dum.box[1][1] - 2 ||
-               dum.atom[i].z > dum.box[2][1] - 2){
-                dum.atom.erase(dum.atom.begin()+i);
-                continue;
-            }
 
             i++;
         }
@@ -569,7 +575,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                         lastIndex = i;
                         firstNbr = 0;
                     }
-                    probe.nbr.push_back(&dum.atom[i]);
+                    probe.nbr.push_back(&(dum.atom[i]));
                 }
             }
             if(probe.nbr.size() > nums[0] && probe.nbr.size()<nums[1]){
@@ -603,19 +609,39 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
             probes[i].z /= (double)probes[i].nbr.size();
 
         }
-        sort(probes.begin(), probes.end(), com2);
 
         double separation = 0;
 
         if(probes.size() > 0){
             separation = fabs(probes[0].y-probes.back().y);
-            if(separation >  effeSepRange[0] && separation <  effeSepRange[1]){
-                states[file].x = (probes[0].x+probes.back().x)*0.5;
-                states[file].y = (probes[0].y+probes.back().y)*0.5;
-                states[file].z = (probes[0].z+probes.back().z)*0.5;
-                states[file].timestep = dum.timestep;
-                states[file].separation = separation;
+            if(effeSepRange[0] > 0 && effeSepRange[1] >0 ){
+                 sort(probes.begin(), probes.end(), com2);
+                if(separation >  effeSepRange[0] && separation <  effeSepRange[1] ){
+                    states[file].x = (probes[0].x+probes.back().x)*0.5;
+                    states[file].y = (probes[0].y+probes.back().y)*0.5;
+                    states[file].z = (probes[0].z+probes.back().z)*0.5;
+                    states[file].timestep = dum.timestep;
+                    states[file].separation = separation;
 
+                    if(logfile ==1){
+                        states[file].vars.resize(list.variables.size()-1);
+                        for(i=0; i<list.data[0].size(); i++){
+                            if(states[file].timestep == ((int)list.data[0][i]))break;
+                        }
+                        for(j=0; j<states[file].vars.size(); j++){
+                            states[file].vars[j] = list.data[j+1][i];
+                        }
+                    }
+                }
+            }else{
+                sort(probes.begin(), probes.end(), com4);
+                
+                states[file].x = probes[0].x;
+                states[file].y = probes[0].y;
+                states[file].z = probes[0].z;
+                states[file].timestep = dum.timestep;
+                states[file].separation = 0;
+                printf("file %d, nbrsize %d, timestep %d %f \n",file,(int)probes[0].nbr.size(), states[file].timestep, states[file].y);
                 if(logfile ==1){
                     states[file].vars.resize(list.variables.size()-1);
                     for(i=0; i<list.data[0].size(); i++){
@@ -625,6 +651,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                         states[file].vars[j] = list.data[j+1][i];
                     }
                 }
+
             }
         }
         
@@ -632,7 +659,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 
     sort(states.begin(), states.end(), com3);
 
-    out << "variables = timestep, separation, y";
+    out << "variables = timestep, separation, y, absy, vy";
     if(logfile == 1){
         for(i=1; i<list.variables.size(); i++){
             out << ", " << list.variables[i];
@@ -640,12 +667,28 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
     }
     out << endl;
 
+    real8    lastAbsy, vy, lasty, lastTimestep;
+    ReadDumpFile(inArgs->inpFiles[0], dum);
+    real8    ybox = dum.box[1][1];
+    printf("effective states %d, boxy is %f\n", (int)states.size(), dum.box[1][1]);
     for(i=0; i<states.size(); i++){
         if(states[i].timestep > 1E9)break;
         
+        lastAbsy = ((i==0) ? states[i].y : states[i-1].absy);
+        lasty = ((i==0) ? states[i].y : states[i-1].y);
+        lastTimestep = ((i==0) ? states[i].timestep : states[i-1].timestep);
         out << states[i].timestep << " ";
         out << states[i].separation << " ";
         out << states[i].y  << " ";
+
+        vy = states[i].y - lasty;
+        vy -= rint(vy * 1.0/ybox) * ybox;
+        states[i].absy = lastAbsy+vy;
+        out << states[i].absy  << " ";
+
+        states[i].vy = ((i==0) ? 0 : (vy)/(states[i].timestep - lastTimestep));
+        out << states[i].vy  << " ";
+
         for(j=0; j< states[i].vars.size(); j++){
             out << setprecision(10) << states[i].vars[j] << " "; 
         }

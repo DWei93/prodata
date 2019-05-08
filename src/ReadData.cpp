@@ -1,4 +1,5 @@
 
+#include <strings.h>
 #include "Home.h"
 #include "Util.h"
 #include "ProDataIO.h"
@@ -6,89 +7,173 @@
 #include "DDD.h"
 #include "MD.h"
 
+#define     MAXLINELENGTH 512
+
 using namespace std;
+const char* strstri(const char* str, const char* subStr)
+{
+    int len = strlen(subStr);
+    if(len == 0)
+    {
+        return NULL;
+    }
+    while(*str)
+    {
+        if(strncasecmp(str, subStr, len) == 0)
+        {
+            return str;
+        }
+        ++str;
+    }
+    return NULL;
+}
 
 int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 {
-
-    int         lineNo = 1, i, j, type;
-    string      str, v("v");
-    ifstream    infile;
-
-    string::size_type idx;
-
-    vector<string>  line;
-    vector<double>  col;
-    infile.open(file.c_str());
+    int  i, numPoints = 1, j;
+    char str[MAXLINELENGTH], delim[] = " \t\",\n", *p, *token;
+    char quotation[]="\"\n";
+    char name[256];
+    FILE *fp;
+    if((fp = fopen(file.c_str(), "r+")) == NULL){
+        printf("Warning: can not open fie %s\n", file.c_str());
+        return(0);
+    }else{
+        printf("Reading tecplot file %s ...\n", file.c_str());
+    }
 
     secLine = "";
-
-    if(!infile){
-        printf("Warning: cant not the file %s", file.c_str());
-        return (0);
-    }
-
     vector<string>().swap(table.variables);
     vector<vector<real8> >().swap(table.data);
-/*
- *  Read the first line.
- */
-    getline(infile, str);
-    if(str.empty()){
-        printf("Warning: there is noting in the file %s", file.c_str());
-        return (0);
-    }
+    vector<Variable_t>().swap(table.auxData);
+    Variable_t  auxVar;
 
-    line = split(str, " ");
-    for(i=0; i<line.size(); i++){
-        if(atof(line[i].c_str()) == 0)break;
-    }
-    vector<string>().swap(line);
+    bool    firstPoint = 1;
+    int     currSize;
+    while(1){
+        fgets(str, MAXLINELENGTH, fp);
+        if(feof(fp))break;
+        if(str == "\n" || str == NULL)continue;
 
-    if(i == 0){
-        line = split(str, "=");
-        table.variables = split(line[1], ",");
-        for(i=0; i<table.variables.size(); i++){
-            WashString(table.variables[i]);
+        if(strstr(str, "variables") != NULL || strstr(str, "VARIABLES") != NULL){
+            token = strtok(str, "=");
+            while(1){
+                if((token = strtok(NULL, delim)) != NULL){
+                    table.variables.push_back(token);
+                }else{
+                    break;
+                }
+                table.variables.push_back(strtok(NULL, delim));
+            }
+            printf("variables: ");
+            for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
+            printf("\n");
+            continue;
         }
-        vector<string>().swap(line);
-        col.resize(table.variables.size());
+        
+        if(strstri(str, "Zone") != NULL || strstri(str, "ZONE") != NULL || strstri(str, "zone") != NULL){
+            secLine = strtok(str, "\n");
+            printf("second line: %s", secLine.c_str());
 
-    }else{
-        line = split(str, " ");
-        table.variables.resize(line.size());
-        col.resize(table.variables.size());
-        for(i=0;i<line.size();i++){
-            table.variables[i] = v + (char)i;
-            col[i] = atof(line[i].c_str());
+            char *p2;
+            if((p2 = strstr(str, "T = ")) != (char *)NULL){
+                token = strtok(p2, quotation);
+                if((token = strtok(NULL, quotation)) != NULL){
+                    auxVar.type = DOUBLE_DATA;
+                    auxVar.name = "T";
+                    auxVar.val = token;
+                    table.auxData.push_back(auxVar);
+                    printf("Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
+                }
+            }
+            if((p2=strstr(str, "SOLUTIONTIME")) != (char *)NULL){
+                token = strtok(p2, quotation);
+                if((token = strtok(NULL, quotation)) != NULL){
+                    auxVar.type = DOUBLE_DATA;
+                    auxVar.name = "SOLUTIONTIME";
+                    auxVar.val = token;
+                    table.auxData.push_back(auxVar);
+                    printf("Soluition Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
+                }
+            }
+            if((p2=strstr(str, "i = ")) != (char *)NULL){
+                token = strtok(p2, quotation);
+                if((token = strtok(NULL, quotation)) != NULL){
+                    numPoints = atoi(token);
+                    printf("%d points will be read.\n", numPoints);
+                }
+            }
+            continue;
         }
-        table.data.push_back(col);
-    }
 
-    j = 0;
-    while(getline(infile,str))
-    {   
-        if(str == "")continue;
-        lineNo++;
-        line = split(str, " ");
-        if(lineNo == 2){
-            idx = str.find("=");
-            if(idx != string::npos){
-                secLine = str;
-                continue;
+        if(strstr(str, "AUXDATA") != NULL){
+            if((token = strtok(str, " ")) != NULL){
+                if((token = strtok(NULL, " ")) != NULL){
+                    auxVar.type = DOUBLE_DATA;
+                    auxVar.name = token;
+                    if((token = strtok(NULL, quotation)) != NULL){
+                        auxVar.val = token;
+                    }else{
+                        Fatal("can not read the value of %s\n", auxVar.name.c_str());
+                    }
+                    printf("aux data: %d %s=%s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
+                    table.auxData.push_back(auxVar);
+                }
+            }
+            continue;
+        }
+       
+        if(firstPoint){
+            firstPoint = 0;
+            if(table.variables.size() == 0){
+                i = 0;
+                token = strtok(str, " \n");
+                if(token != NULL){
+                    snprintf(name, sizeof(name), "v%d", i); 
+                    table.variables.push_back(name);
+                    
+                    while((token = strtok(NULL, " \n")) != NULL){
+                        i++;
+                        snprintf(name, sizeof(name), "v%d", i); 
+                        table.variables.push_back(name);
+                    } 
+                    printf("Undifined variables: ");
+                    for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
+                    printf("\n");
+                }
             }
         }
 
-        for(i=0; i<col.size(); i++){
-            col[i] = atof(line[i].c_str());
-        }
-        table.data.push_back(col);
-        j++;
-        vector<string>().swap(line);
-    }
-    infile.close();
 
-//    printf("Finish reading input file %s\n", file.c_str());    
+//        if(strtok(str, " ") == NULL)continue;
+        if(numPoints > 1){
+            currSize = (int)table.data.size();
+            table.data.resize(currSize+numPoints);
+            for(i=currSize; i<table.data.size() && !feof(fp); i++){
+                table.data[i].resize(table.variables.size());
+                table.data[i][0] = atof(strtok(str, " ")); 
+                for(j=1; j<table.variables.size(); j++){
+                    table.data[i][j] = atof(strtok(NULL, " \n"));
+                }
+                fgets(str, MAXLINELENGTH, fp);
+            }
+        }else{
+            currSize = (int)table.data.size();
+            table.data.resize(currSize+numPoints);
+            table.data[currSize].resize(table.variables.size());
+            table.data[currSize][0] = atof(strtok(str, " ")); 
+            for(j=1; j<table.variables.size(); j++){
+                table.data[currSize][j] = atof(strtok(NULL, " \n"));
+            }
+//            printf("%d: ", currSize);
+//            for(i=0;i<table.data[currSize].size(); i++)printf("%f ", table.data[currSize][i]);
+//            printf("\n");
+        }
+    }
+    fclose(fp);
+
+    if(table.data.size() != currSize+1)table.data.resize(currSize+1);
+    printf("Finish reading input file %s, %d points\n", file.c_str(), currSize+1);    
     return 1;            
 }
 
@@ -278,3 +363,83 @@ int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list)
 }
 
 
+bool ReadLMPFile(const string file, Dump_t &dum)
+{
+    CleanDump(dum);
+
+    FILE *fp;
+    if((fp = fopen(file.c_str(), "r+")) == NULL){
+        return(0);
+    }
+
+    char str[MAXLINELENGTH], delim[] = " \t", *p;
+    dum.box.resize(3);
+    dum.bounds.resize(3);
+    for(int i = 0; i<3; i++)dum.box[i].resize(2);
+
+    while(!feof(fp)){
+        fgets(str, MAXLINELENGTH, fp);
+        
+        if((p = strstr(str, "atoms")) != NULL){
+            dum.atom.resize(atoi(str));
+            printf("atoms: %d\n",(int)dum.atom.size());
+            continue;
+        }
+
+        if((p = strstr(str, "xlo xhi")) != NULL){
+            dum.box[0][0] = atof(strtok(str, delim));
+            dum.box[0][1] = atof(strtok(NULL, delim));
+            printf("box x: [%f, %f]\n", dum.box[0][0], dum.box[0][1]);
+            dum.bounds[0] = "xx";
+            continue;
+        }
+
+        if((p = strstr(str, "ylo yhi")) != NULL){
+            dum.box[1][0] = atof(strtok(str, delim));
+            dum.box[1][1] = atof(strtok(NULL, delim));
+            dum.bounds[1] = "yy";
+            printf("box y: [%f, %f]\n", dum.box[1][0], dum.box[1][1]);
+            continue;
+        }
+
+        if((p = strstr(str, "zlo zhi")) != NULL){
+            dum.box[2][0] = atof(strtok(str, delim));
+            dum.box[2][1] = atof(strtok(NULL, delim));
+            dum.bounds[2] = "zz";
+            printf("box z: [%f, %f]\n", dum.box[2][0], dum.box[2][1]);
+            continue;
+        }
+
+        if((p = strstr(str, "xy xz yz")) != NULL){
+            dum.box[0].resize(3);
+            dum.box[0].resize(3);
+            dum.box[0].resize(3);
+            dum.bounds.resize(6);
+
+            dum.box[0][2] = atof(strtok(str, delim));
+            dum.box[1][2] = atof(strtok(NULL, delim));
+            dum.box[2][2] = atof(strtok(NULL, delim));
+            dum.bounds[3] = "xy";
+            dum.bounds[4] = "xz";
+            dum.bounds[5] = "yz";
+
+            printf("triclinic box: [%f, %f %f]\n", dum.box[0][2], dum.box[1][2], dum.box[2][2]);
+            continue;
+        }
+
+        if((p = strstr(str, "Atoms")) != NULL){
+            fgets(str, MAXLINELENGTH, fp);
+            for(int i=0; i<dum.atom.size(); i++){
+                fgets(str, MAXLINELENGTH, fp);
+                dum.atom[i].id = atoi(strtok(str, delim));
+                dum.atom[i].type = atoi(strtok(NULL, delim));
+                dum.atom[i].x = atof(strtok(NULL, delim));
+                dum.atom[i].y = atof(strtok(NULL, delim));
+                dum.atom[i].z = atof(strtok(NULL, delim));
+            }
+        }
+    }
+
+    fclose(fp);
+    return 1;
+}

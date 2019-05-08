@@ -31,5 +31,6 @@ int ReadDumpFile(const string &file, Dump_t &dum);
 int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list);
 int WriteDumpFile(const string &file, Dump_t &dum, int precision = 6); 
 int MGToLMPDataFile(const string &file, Dump_t &dum, int precision = 10);
+bool ReadLMPFile(const string file, Dump_t &dum);
 
 #endif

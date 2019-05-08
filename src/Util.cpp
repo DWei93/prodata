@@ -336,7 +336,7 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
 {
     int     i, index;
     bool    readState;
-    string  secLine, noBackupName = ("nobackup"), backupFile, sufBack = ("bak.");
+    string  secLine, noBackupName = ("nobackup"), backupFile, sufBack = (".bak");
     char    name[256];
     bool    backup = 1;
 
@@ -362,7 +362,7 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
         if(backup){
-            backupFile = sufBack + inArgs->inpFiles[i];
+            backupFile = inArgs->inpFiles[i] + sufBack;
             WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
         }
         SpecifyEquations(tables[i]);
@@ -378,3 +378,17 @@ void FormatVector(real8 vec[3], const char *msg){
 	printf("%s vector:\n",msg);
 	printf("{%.15f,%.15f,%.15f}\n", vec[0], vec[1], vec[2]);
 }
+
+bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
+{
+    if(nums < 3)return 0;
+
+    int i, j;
+
+    return 0;
+} 
+
+
+
+
+

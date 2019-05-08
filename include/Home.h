@@ -99,6 +99,11 @@ typedef	enum{
 	FTYPE_MAX
 }FTYPE_t;
 
+typedef enum{
+    INT_DATA = 0,
+    DOUBLE_DATA,
+    STRING_DATA
+}DATA_TYPE;
 /*
  *      Define a structure to hold a command line option's id (type),
  *      name, the shortest possible unique abbreviation of the option
@@ -112,7 +117,14 @@ typedef struct {
 } Option_t;
 
 typedef struct {
+        int     type;
+        string  name;
+        string  val;
+}Variable_t;
+
+typedef struct {
     vector<string>          variables;
+    vector<Variable_t>      auxData;
     vector<vector<double> > data;
 } Table_t;
 
