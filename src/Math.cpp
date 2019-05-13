@@ -13,9 +13,9 @@ void AverageLines(InArgs_t *inArgs)
     int     index, i, j, k, colX = -1, colY;
     int     readState;
     bool    firstFile = 1, calTau = 0, specifyEqu = 0;
-    real8   rsize = 20, min, max, effNums = 0, value;
+    real8   rsize = 0, min, max, effNums = 0, value;
     string  rsizeName("rsize"), varsName("vars"), overName("over"), specifyEquName("spe");
-    string  str("Ave_"), secLine, tauName("tau"), overVar;
+    string  str("Ave_"), secLine, tauName("tau"), overVar, weighName("weigh"), weightCoeff;
 
     LineList_t  list;
     Curve_t     curve;
@@ -26,11 +26,25 @@ void AverageLines(InArgs_t *inArgs)
     vector<string>      s1, s2;
     vector<vector<vector<real8> > > array;
 
+    bool weigh = false;
+    if((index = GetValID(inArgs->priVars, weighName)) < inArgs->priVars.size()){
+        weigh = true;
+        weightCoeff = inArgs->priVars[index].vals[0];
+    }
+    if(weigh){
+        printf("Weight coffeicient (weigh) %s is defined\n", weightCoeff.c_str());
+    }else{
+        printf("No weight coffeicient (weigh) is defied\n");
+    }
+    
     if((index = GetValID(inArgs->priVars, rsizeName)) < inArgs->priVars.size()){
         rsize = atof(inArgs->priVars[index].vals[0].c_str());
     }
-    printf("The remesh size (rsize) is %f\n", rsize);
-
+    if(rsize ==  0){
+        printf("Not change the original remesh size (rsize)\n", rsize);
+    }else{
+        printf("The remesh size (rsize) is %f\n", rsize);
+    }
     if((index = GetValID(inArgs->priVars, tauName)) < inArgs->priVars.size()){
         calTau = atoi(inArgs->priVars[index].vals[0].c_str());
     }
@@ -90,10 +104,37 @@ void AverageLines(InArgs_t *inArgs)
         Fatal("There is no input file.");
     }
 
-    printf("Ranges of files:\n ");
+    map<string, string>::iterator   iter;
+    vector<real8>   weightList(inArgs->inpFiles.size());
+    real8   totalWeight = 0.0;       
+    int     firstReadFile = -1;        
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
-        if(!readState)continue;
+        if(!readState){
+            weightList[i] = 0.0;
+            continue;
+        }else{
+            if(firstReadFile < 0){
+                firstReadFile = i;
+            }
+        }
+
+        if(weigh){
+//            for(iter=tables[i].aux.begin(); iter != tables[i].aux.end(); iter++){
+//                printf("%s = %s\n", iter->first.c_str(), iter->second.c_str());
+//            }
+//            Fatal("T");
+    
+            if((iter = tables[i].aux.find(weightCoeff)) != tables[i].aux.end()){
+                weightList[i] = atof(iter->second.c_str());
+            }else{
+                printf("waring: no weight variale %s in file %s\n", weightCoeff.c_str(), inArgs->inpFiles[i].c_str());
+                weightList[i] = 1.0;
+            }
+        }else{
+            weightList[i] = 1.0;
+        }
+        totalWeight += weightList[i];
 
         if(specifyEqu){
             SpecifyEquations(tables[i]);
@@ -145,12 +186,21 @@ void AverageLines(InArgs_t *inArgs)
             }
         }
 
-        printf("[%f,%f]\n", tables[i].data[0][colX], tables[i].data[tables[i].data.size()-1][colX]);
+        printf("File %s(%d): Range is [%f,%f], %d points\n", 
+                inArgs->inpFiles[i].c_str(), i, tables[i].data[0][colX], tables[i].data[tables[i].data.size()-1][colX],
+                (int)(tables[i].data.size()));
     }
     printf("The effective range of %s is [%f,%f]\n", overVar.c_str(), min, max);
-    printf("%d files was read\n", (int)effNums);
+    printf("%d files have been read, the total weight is %f\n", (int)effNums, totalWeight);
 
-    seq = GenerateSequence(min, max, rsize);
+    if(rsize == 0){
+        seq.resize(tables[firstReadFile].data.size());
+        for(i=0; i<seq.size(); i++){
+            seq[i] = tables[firstReadFile].data[i][varID[colX]];
+        }
+    }else{
+        seq = GenerateSequence(min, max, rsize);
+    }
     if(calTau){
         array.resize((int)(effNums));
         for(i=0; i<array.size(); i++){
@@ -190,13 +240,27 @@ void AverageLines(InArgs_t *inArgs)
             }else{
                 for(k=0; k<curve.ax.size(); k++){
                     curve.ay[k] = tables[i].data[k][varID[j]];
+//                    printf("%d %e %e\n", k, curve.ay[k], tables[i].data[k][varID[j]]);
                 }
 
-                for(k=0; k<seq.size(); k++){
-                    value = LinearInterpolation(curve, seq[k], min, max);
-                    list.data[j][k] += (value/effNums);
-                    if(calTau){
-                        array[i][j-1][k] = value; 
+                if(rsize == 0){
+                    if(seq.size() != curve.ay.size()){
+                        Fatal("the %d table has a differnt size (%d) from the basic one (%d)",
+                               i, (int)seq.size(), (int)curve.ay.size());
+                    }
+                    for(k=0; k<seq.size(); k++){
+                        list.data[j][k] += (curve.ay[k]*weightList[i]/totalWeight);
+                    }
+//                    printf("%e %e %e %e %d\n", list.data[j][k],curve.ay[k],weightList[i],totalWeight, (int)curve.ay.size()); 
+                    if(calTau)array[i][j-1][k] = curve.ay[k];
+
+                }else{
+                    for(k=0; k<seq.size(); k++){
+                        value = LinearInterpolation(curve, seq[k], min, max);
+                        list.data[j][k] += (value*weightList[i]/totalWeight);
+                        if(calTau){
+                            array[i][j-1][k] = value; 
+                        }
                     }
                 }
             }
@@ -220,7 +284,7 @@ void AverageLines(InArgs_t *inArgs)
         for(i=0; i<array.size(); i++){
             for(j=0; j<array[i].size(); j++){
                 for(k=0; k<array[i][j].size(); k++){
-                    list.data[j+oriVals][k] += (pow((array[i][j][k] - list.data[j+1][k]),2)/((real8)array.size()));
+                    list.data[j+oriVals][k] += (pow((array[i][j][k] - list.data[j+1][k]),2)*weightList[i]/totalWeight);
                 }
             }
         }

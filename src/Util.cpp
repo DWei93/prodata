@@ -379,6 +379,7 @@ void FormatVector(real8 vec[3], const char *msg){
 	printf("{%.15f,%.15f,%.15f}\n", vec[0], vec[1], vec[2]);
 }
 
+
 bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
 {
     if(nums < 3)return 0;
@@ -387,8 +388,6 @@ bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
 
     return 0;
 } 
-
-
 
 
 

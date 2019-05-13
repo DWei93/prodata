@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <map>
 
 #ifdef _OPENMP
 
@@ -125,6 +126,7 @@ typedef struct {
 typedef struct {
     vector<string>          variables;
     vector<Variable_t>      auxData;
+    map<string, string>     aux;
     vector<vector<double> > data;
 } Table_t;
 

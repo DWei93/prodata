@@ -50,12 +50,14 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 
     bool    firstPoint = 1;
     int     currSize;
+    char    *p2;
     while(1){
         fgets(str, MAXLINELENGTH, fp);
         if(feof(fp))break;
         if(str == "\n" || str == NULL)continue;
 
-        if(strstr(str, "variables") != NULL || strstr(str, "VARIABLES") != NULL){
+//        if(strstr(str, "variables") != NULL || strstr(str, "VARIABLES") != NULL){
+        if(strstr(str, "variables") != NULL){
             token = strtok(str, "=");
             while(1){
                 if((token = strtok(NULL, delim)) != NULL){
@@ -71,11 +73,11 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
             continue;
         }
         
-        if(strstri(str, "Zone") != NULL || strstri(str, "ZONE") != NULL || strstri(str, "zone") != NULL){
+//        if(strstri(str, "Zone") != NULL || strstri(str, "ZONE") != NULL || strstri(str, "zone") != NULL){
+        if(strstri(str, "zone") != NULL){
             secLine = strtok(str, "\n");
-            printf("second line: %s", secLine.c_str());
+            printf("second line: %s\n", secLine.c_str());
 
-            char *p2;
             if((p2 = strstr(str, "T = ")) != (char *)NULL){
                 token = strtok(p2, quotation);
                 if((token = strtok(NULL, quotation)) != NULL){
@@ -83,6 +85,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     auxVar.name = "T";
                     auxVar.val = token;
                     table.auxData.push_back(auxVar);
+                    table.aux[auxVar.name] = auxVar.val;
                     printf("Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
                 }
             }
@@ -93,6 +96,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     auxVar.name = "SOLUTIONTIME";
                     auxVar.val = token;
                     table.auxData.push_back(auxVar);
+                    table.aux[auxVar.name] = auxVar.val;
                     printf("Soluition Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
                 }
             }
@@ -106,17 +110,19 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
             continue;
         }
 
-        if(strstr(str, "AUXDATA") != NULL){
-            if((token = strtok(str, " ")) != NULL){
+        if((p2 = strstr(str, "AUXDATA")) != NULL){
+            if((token = strtok(p2, " ")) != NULL){
                 if((token = strtok(NULL, " ")) != NULL){
                     auxVar.type = DOUBLE_DATA;
                     auxVar.name = token;
-                    if((token = strtok(NULL, quotation)) != NULL){
+                    if((token = strtok(NULL, quotation)) != NULL 
+                        && (token = strtok(NULL, quotation)) != NULL){
                         auxVar.val = token;
                     }else{
                         Fatal("can not read the value of %s\n", auxVar.name.c_str());
                     }
                     printf("aux data: %d %s=%s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
+                    table.aux[auxVar.name] = auxVar.val;
                     table.auxData.push_back(auxVar);
                 }
             }
