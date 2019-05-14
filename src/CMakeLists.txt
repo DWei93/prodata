@@ -3,8 +3,8 @@ Set (SRCS
     WriteData.cpp Parse.cpp GenerateDislocation.cpp 
     ../custom/Custom.cpp)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -DPARALLEL=1 " )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 " )
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -std=c++11" )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11" )
 
 if(OPENMP_FOUND)  
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -openmp")

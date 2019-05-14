@@ -302,15 +302,15 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
             swap(bakInps, inArgs->auxFiles);
         }
         sort(inArgs->auxFiles.begin(), inArgs->auxFiles.end());
-#if 0
-        if(inArgs->inpFiles.size()>1){
+#if 1
+        if(inArgs->inpFiles.size()<5){
             printf("Input files are:\n");
             for(i=0; i<inArgs->inpFiles.size(); i++){
                 printf("%s \n", inArgs->inpFiles[i].c_str());
             }
         }
     
-        if(inArgs->auxFiles.size() > 0){
+        if(inArgs->auxFiles.size() < 5){
             printf("Auxiliary file(s) :\n");
             for(i=0; i<inArgs->auxFiles.size(); i++){
                 printf("%s \n", inArgs->auxFiles[i].c_str());

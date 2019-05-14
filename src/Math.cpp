@@ -42,7 +42,7 @@ void AverageLines(InArgs_t *inArgs)
         rsize = atof(inArgs->priVars[index].vals[0].c_str());
     }
     if(rsize ==  0){
-        printf("Not change the original remesh size (rsize)\n", rsize);
+        printf("Not change the original remesh size (rsize)\n");
     }else{
         printf("The remesh size (rsize) is %f\n", rsize);
     }

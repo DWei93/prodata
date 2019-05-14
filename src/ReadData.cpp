@@ -45,7 +45,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     secLine = "";
     vector<string>().swap(table.variables);
     vector<vector<real8> >().swap(table.data);
-    vector<Variable_t>().swap(table.auxData);
+    table.aux.clear();
     Variable_t  auxVar;
 
     bool    firstPoint = 1;
@@ -84,7 +84,6 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     auxVar.type = DOUBLE_DATA;
                     auxVar.name = "T";
                     auxVar.val = token;
-                    table.auxData.push_back(auxVar);
                     table.aux[auxVar.name] = auxVar.val;
 //                    printf("Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
                 }
@@ -95,7 +94,6 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     auxVar.type = DOUBLE_DATA;
                     auxVar.name = "SOLUTIONTIME";
                     auxVar.val = token;
-                    table.auxData.push_back(auxVar);
                     table.aux[auxVar.name] = auxVar.val;
                     printf("Soluition Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
                 }
@@ -123,7 +121,6 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     }
 //                    printf("aux data: %d %s=%s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
                     table.aux[auxVar.name] = auxVar.val;
-                    table.auxData.push_back(auxVar);
                 }
             }
             continue;
@@ -164,7 +161,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                 for(j=1; j<table.variables.size(); j++){
                     table.data[i][j] = atof(strtok(NULL, " \n"));
                 }
-                fgets(str, MAXLINELENGTH, fp);
+                (char *)fgets(str, MAXLINELENGTH, fp);
             }
         }else{
             currSize = (int)table.data.size();
