@@ -424,18 +424,18 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
     vec2[1] = p1y + t*dy;    
     vec2[2] = p1z + t*dz;
 
-    if(isnan(vec2[0]) || isinf(vec2[0]) ||
-       isnan(vec2[1]) || isinf(vec2[1]) ||
-       isnan(vec2[2]) || isinf(vec2[2])){
+    if(std::isnan(vec2[0]) || std::isinf(vec2[0]) ||
+       std::isnan(vec2[1]) || std::isinf(vec2[1]) ||
+       std::isnan(vec2[2]) || std::isinf(vec2[2])){
         printf(" LinePlaneIntersection: %f,%f,%f\n", 
                 vec2[0], vec2[1], vec2[2]);
     }
 
-    if(isnan(vec2[0]))vec2[0] = 0.0;
-    if(isnan(vec2[1]))vec2[1] = 0.0;
-    if(isnan(vec2[2]))vec2[2] = 0.0;
+    if(std::isnan(vec2[0]))vec2[0] = 0.0;
+    if(std::isnan(vec2[1]))vec2[1] = 0.0;
+    if(std::isnan(vec2[2]))vec2[2] = 0.0;
     
-    if(isinf(vec2[0]) || isinf(vec2[1]) || isinf(vec2[2]) ){
+    if(std::isinf(vec2[0]) || std::isinf(vec2[1]) || std::isinf(vec2[2]) ){
         printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
         printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
         printf("n: {%f,%f,%f}\n", n[0], n[1], n[2]);
@@ -499,7 +499,7 @@ int PointLineIntersection(double *p1, double *d, double *p2,
 
     *dis = sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[1]-p1[1]) + SQUARE(vec[2]-p1[2]) );
 
-    if(isnan(*dis) || isinf(*dis)){
+    if(std::isnan(*dis) || std::isinf(*dis)){
         printf(" PointLineIntersection: %f {%f,%f,%f}\n", 
                *dis, vec[0], vec[1], vec[2]);
         vec[0] = p1[0];
@@ -507,8 +507,8 @@ int PointLineIntersection(double *p1, double *d, double *p2,
         vec[2] = p1[2];
     }
 
-    if(isnan(*dis))*dis = 0.0;
-    if(isinf(*dis)) *dis = 0.0;
+    if(std::isnan(*dis))*dis = 0.0;
+    if(std::isinf(*dis)) *dis = 0.0;
 #if 0
     if(*dis < EPS2 && sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0])) > 10000){
         printf("vec: {%f,%f,%f}\n", vec[0], vec[1], vec[2]);
@@ -630,11 +630,11 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
            SQUARE(d1x)*(SQUARE(d2y) + SQUARE(d2z))));
 
 
-    if(isnan(*dis) || isinf(*dis)){
+    if(std::isnan(*dis) || std::isinf(*dis)){
         printf("LineLineIntersection: %f\n", *dis);
     }
-    if(isnan(*dis)) *dis = 0.0;
-    if(isinf(*dis)) *dis = 0.0;
+    if(std::isnan(*dis)) *dis = 0.0;
+    if(std::isinf(*dis)) *dis = 0.0;
 
     if(fabs(*dis) < EPS2 && sqrt(SQUARE(vec2[0]-p1[0]) + SQUARE(vec2[0]-p1[0]) + SQUARE(vec2[0]-p1[0])) > 10000){
         printf("vec2: {%f,%f,%f}\n", vec2[0], vec2[1], vec2[2]);
@@ -668,12 +668,12 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
     *dis = sqrt(SQUARE(nx*p1x + ny*p1y + nz*p1z - nx*p2x - ny*p2y - nz*p2z)/
            (SQUARE(nx) + SQUARE(ny) + SQUARE(nz)));
 
-    if(isnan(*dis) || isinf(*dis)){
+    if(std::isnan(*dis) || std::isinf(*dis)){
         printf(" PointPlaneIntersection: %f\n", *dis);
     }
 
-    if(isnan(*dis)) *dis = 0.0;
-    if(isinf(*dis)) *dis = 0.0;
+    if(std::isnan(*dis)) *dis = 0.0;
+    if(std::isinf(*dis)) *dis = 0.0;
 
     vec[0] = (SQUARE(ny)*p1x + SQUARE(nz)*p1x + SQUARE(nx)*p2x + 
              nx*ny*(-p1y + p2y) + nx*nz*(-p1z + p2z))/
@@ -713,11 +713,11 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis){
     vec[2] = p2[2] - p1[2];
 
     *dis = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
-    if(isnan(*dis) || isinf(*dis)){
+    if(std::isnan(*dis) || std::isinf(*dis)){
         printf(" PointPointIntersection: %f\n", *dis);
     }
-    if(isnan(*dis)) *dis = 0.0;
-    if(isinf(*dis)) *dis = 0.0;
+    if(std::isnan(*dis)) *dis = 0.0;
+    if(std::isinf(*dis)) *dis = 0.0;
     
     if(*dis < EPS2){
         return(POINT_INTERSECTION);

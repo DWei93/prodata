@@ -277,7 +277,7 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
             angle /= 2.0;
         
             displace = angle*DisDisPlacement(dis1);
-            if(isnan(displace)){
+            if(std::isnan(displace)){
                 displace = 0;
                 printf("0");
             }
