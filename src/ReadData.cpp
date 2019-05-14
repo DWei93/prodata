@@ -39,7 +39,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         printf("Warning: can not open fie %s\n", file.c_str());
         return(0);
     }else{
-        printf("Reading tecplot file %s ...\n", file.c_str());
+//        printf("Reading tecplot file %s ...\n", file.c_str());
     }
 
     secLine = "";
@@ -65,18 +65,18 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                 }else{
                     break;
                 }
-                table.variables.push_back(strtok(NULL, delim));
+//                table.variables.push_back(strtok(NULL, delim));
             }
-            printf("variables: ");
-            for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
-            printf("\n");
+//            printf("variables: ");
+//            for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
+//            printf("\n");
             continue;
         }
         
 //        if(strstri(str, "Zone") != NULL || strstri(str, "ZONE") != NULL || strstri(str, "zone") != NULL){
         if(strstri(str, "zone") != NULL){
             secLine = strtok(str, "\n");
-            printf("second line: %s\n", secLine.c_str());
+//            printf("second line: %s\n", secLine.c_str());
 
             if((p2 = strstr(str, "T = ")) != (char *)NULL){
                 token = strtok(p2, quotation);
@@ -86,7 +86,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     auxVar.val = token;
                     table.auxData.push_back(auxVar);
                     table.aux[auxVar.name] = auxVar.val;
-                    printf("Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
+//                    printf("Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
                 }
             }
             if((p2=strstr(str, "SOLUTIONTIME")) != (char *)NULL){
@@ -104,7 +104,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                 token = strtok(p2, quotation);
                 if((token = strtok(NULL, quotation)) != NULL){
                     numPoints = atoi(token);
-                    printf("%d points will be read.\n", numPoints);
+//                    printf("%d points will be read.\n", numPoints);
                 }
             }
             continue;
@@ -121,7 +121,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     }else{
                         Fatal("can not read the value of %s\n", auxVar.name.c_str());
                     }
-                    printf("aux data: %d %s=%s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
+//                    printf("aux data: %d %s=%s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
                     table.aux[auxVar.name] = auxVar.val;
                     table.auxData.push_back(auxVar);
                 }
@@ -132,6 +132,8 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         if(firstPoint){
             firstPoint = 0;
             if(table.variables.size() == 0){
+                char strBak[MAXLINELENGTH];
+                sprintf(strBak, "%s", str);
                 i = 0;
                 token = strtok(str, " \n");
                 if(token != NULL){
@@ -147,6 +149,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
                     printf("\n");
                 }
+                sprintf(str, "%s", strBak);
             }
         }
 
@@ -179,7 +182,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     fclose(fp);
 
     if(table.data.size() != currSize+1)table.data.resize(currSize+1);
-    printf("Finish reading input file %s, %d points\n", file.c_str(), currSize+1);    
+//    printf("Finish reading input file %s, %d points\n", file.c_str(), currSize+1);    
     return 1;            
 }
 

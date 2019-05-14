@@ -12,11 +12,12 @@ void AverageLines(InArgs_t *inArgs)
 {
     int     index, i, j, k, colX = -1, colY;
     int     readState;
-    bool    firstFile = 1, calTau = 0, specifyEqu = 0;
+    bool    firstFile = 1, specifyEqu = 0;
     real8   rsize = 0, min, max, effNums = 0, value;
     string  rsizeName("rsize"), varsName("vars"), overName("over"), specifyEquName("spe");
     string  str("Ave_"), secLine, tauName("tau"), overVar, weighName("weigh"), weightCoeff;
 
+    bool        calTau = 0;
     LineList_t  list;
     Curve_t     curve;
 
@@ -46,7 +47,7 @@ void AverageLines(InArgs_t *inArgs)
         printf("The remesh size (rsize) is %f\n", rsize);
     }
     if((index = GetValID(inArgs->priVars, tauName)) < inArgs->priVars.size()){
-        calTau = atoi(inArgs->priVars[index].vals[0].c_str());
+        calTau = true;
     }
     if(calTau){
         printf("The variance (tau) will been caculated\n");
