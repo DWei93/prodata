@@ -124,6 +124,9 @@ typedef struct {
 }Variable_t;
 
 typedef struct {
+    string                  T;
+    int                     i,j,k;
+    double                  solutionTime;
     vector<string>          variables;
     map<string, string>     aux;
     vector<vector<double> > data;

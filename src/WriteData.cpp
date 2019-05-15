@@ -78,6 +78,12 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
         out << secLine << endl;
     }
 
+    if(!table.aux.empty()){
+        for(const auto &pair : table.aux){
+            out << "AUXDATA " << pair.first << " = \"" << pair.second << "\"\n";
+        }
+    }
+
     for(i=0; i<table.data.size(); i++){
         for(j=0; j<table.variables.size(); j++){
             out << setprecision(precision) << table.data[i][j] << " ";

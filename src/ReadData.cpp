@@ -1,5 +1,6 @@
 
 #include <strings.h>
+#include <regex>
 #include "Home.h"
 #include "Util.h"
 #include "ProDataIO.h"
