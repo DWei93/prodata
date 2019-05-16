@@ -73,118 +73,65 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         if(feof(fp))break;
         if(str == "\n" || str == NULL)continue;
 
-//        if(strstr(str, "variables") != NULL || strstr(str, "VARIABLES") != NULL){
-        if(strstr(str, "variables") != NULL){
-            token = strtok(str, "=");
-            while(1){
-                if((token = strtok(NULL, delim)) != NULL){
-                    table.variables.push_back(token);
-                }else{
-                    break;
-                }
-//                table.variables.push_back(strtok(NULL, delim));
-            }
-//            printf("variables: ");
-//            for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
-//            printf("\n");
-            continue;
-        }
-#if 1
-        buff0 = str;
-        if(std::regex_search(buff0, equation_match, aux_equation)){
-            buff1 = equation_match[0].str();
-            if(std::regex_search(buff1, v_match, var_name)){
-                buff2 = v_match.suffix().str();
-                if(std::regex_search(buff2, v_match, var_name)){
-                    buff1 = v_match[0].str();
-                    buff2 = v_match.suffix().str();
-                    if(std::regex_search(buff2, v_match, value)){
-                        table.aux[buff1] = v_match[0].str();
+        if(firstPoint){
+            if(strstr(str, "variables") != NULL){
+                token = strtok(str, "=");
+                while(1){
+                    if((token = strtok(NULL, delim)) != NULL){
+                        table.variables.push_back(token);
+                    }else{
+                        break;
                     }
+//                    table.variables.push_back(strtok(NULL, delim));
                 }
+//                printf("variables: ");
+//                for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
+//                printf("\n");
+                continue;
             }
-            continue;
-        }else if(std::regex_search(buff0,equation_match, equation)){
-             buff1 = buff0;
-             while(std::regex_search(buff1,equation_match, equation)){
-                buff2 = equation_match[0].str();
-                if(std::regex_search(buff2,v_match, var_name)){
-                    buff2 = v_match[0].str();
-                    buff1 = v_match.suffix().str();
-                    if(std::regex_search(buff1, v_match, value)){
-                        if(buff2 == "T"){
-                            table.T = v_match[0].str(); 
-                        }else if (buff2 == "I" || buff2 == "i"){
-                            table.i = atoi(v_match[0].str().c_str());
-                        }else if (buff2 == "J" || buff2 == "j"){
-                            table.j = atoi(v_match[0].str().c_str());
-                        }else if (buff2 == "K" || buff2 == "k"){
-                            table.k = atoi(v_match[0].str().c_str());
-                        }else if (buff2 == "SOLUTIONTIME" || buff2 == "solutiontime"){
-                            table.solutionTime = atof(v_match[0].str().c_str());
-                        }else{
-                            printf("Warning: can not identify %s", buff2.c_str());
+
+            buff0 = str;
+            if(std::regex_search(buff0, equation_match, aux_equation)){
+                buff1 = equation_match[0].str();
+                if(std::regex_search(buff1, v_match, var_name)){
+                    buff2 = v_match.suffix().str();
+                    if(std::regex_search(buff2, v_match, var_name)){
+                        buff1 = v_match[0].str();
+                        buff2 = v_match.suffix().str();
+                        if(std::regex_search(buff2, v_match, value)){
+                            table.aux[buff1] = v_match[0].str();
                         }
                     }
                 }
-                buff1 = equation_match.suffix().str();
-            }
-            continue;
-        }
-#else   
-//        if(strstri(str, "Zone") != NULL || strstri(str, "ZONE") != NULL || strstri(str, "zone") != NULL){
-        if(strstri(str, "zone") != NULL){
-//            printf("second line: %s\n", secLine.c_str());
-
-            if((p2 = strstr(str, "T = ")) != (char *)NULL){
-                token = strtok(p2, quotation);
-                if((token = strtok(NULL, quotation)) != NULL){
-                    auxVar.type = DOUBLE_DATA;
-                    auxVar.name = "T";
-                    auxVar.val = token;
-                    table.aux[auxVar.name] = auxVar.val;
-//                    printf("Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
-                }
-            }
-            if((p2=strstr(str, "SOLUTIONTIME")) != (char *)NULL){
-                token = strtok(p2, quotation);
-                if((token = strtok(NULL, quotation)) != NULL){
-                    auxVar.type = DOUBLE_DATA;
-                    auxVar.name = "SOLUTIONTIME";
-                    auxVar.val = token;
-                    table.aux[auxVar.name] = auxVar.val;
-                    printf("Soluition Time: %d %s = %s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
-                }
-            }
-            if((p2=strstr(str, "i = ")) != (char *)NULL){
-                token = strtok(p2, quotation);
-                if((token = strtok(NULL, quotation)) != NULL){
-                    numPoints = atoi(token);
-//                    printf("%d points will be read.\n", numPoints);
-                }
-            }
-            continue;
-        }
-
-        if((p2 = strstr(str, "AUXDATA")) != NULL){
-            if((token = strtok(p2, " ")) != NULL){
-                if((token = strtok(NULL, " ")) != NULL){
-                    auxVar.type = DOUBLE_DATA;
-                    auxVar.name = token;
-                    if((token = strtok(NULL, quotation)) != NULL 
-                        && (token = strtok(NULL, quotation)) != NULL){
-                        auxVar.val = token;
-                    }else{
-                        Fatal("can not read the value of %s\n", auxVar.name.c_str());
+                continue;
+            }else if(std::regex_search(buff0,equation_match, equation)){
+                 buff1 = buff0;
+                 while(std::regex_search(buff1,equation_match, equation)){
+                    buff2 = equation_match[0].str();
+                    if(std::regex_search(buff2,v_match, var_name)){
+                        buff2 = v_match[0].str();
+                        buff1 = v_match.suffix().str();
+                        if(std::regex_search(buff1, v_match, value)){
+                            if(buff2 == "T"){
+                                table.T = v_match[0].str(); 
+                            }else if (buff2 == "I" || buff2 == "i"){
+                                table.i = atoi(v_match[0].str().c_str());
+                            }else if (buff2 == "J" || buff2 == "j"){
+                                table.j = atoi(v_match[0].str().c_str());
+                            }else if (buff2 == "K" || buff2 == "k"){
+                                table.k = atoi(v_match[0].str().c_str());
+                            }else if (buff2 == "SOLUTIONTIME" || buff2 == "solutiontime"){
+                                table.solutionTime = atof(v_match[0].str().c_str());
+                            }else{
+                                printf("Warning: can not identify %s", buff2.c_str());
+                            }
+                        }
                     }
-//                    printf("aux data: %d %s=%s\n", auxVar.type, auxVar.name.c_str(), auxVar.val.c_str());
-                    table.aux[auxVar.name] = auxVar.val;
+                    buff1 = equation_match.suffix().str();
                 }
+                continue;
             }
-            continue;
-        }
-#endif  
-        if(firstPoint){
+
             firstPoint = 0;
             if(table.variables.size() == 0){
                 char strBak[MAXLINELENGTH];
