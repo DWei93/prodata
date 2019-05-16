@@ -14,6 +14,26 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <map>
+
+#ifdef _OPENMP
+
+#include <omp.h>
+
+#define INIT_LOCK(a)    omp_init_lock((a))
+#define LOCK(a)         omp_set_lock((a))
+#define UNLOCK(a)       omp_unset_lock((a))
+#define DESTROY_LOCK(a) omp_destroy_lock((a))
+
+#else /* _OPENMP not defined */
+
+#define INIT_LOCK(a)
+#define LOCK(a)
+#define UNLOCK(a)
+#define DESTROY_LOCK(a)
+
+#endif /* end ifdef _OPENMP */
+
 
 #define real8 double
 using namespace std;
@@ -32,7 +52,7 @@ typedef struct {
 typedef struct {
         double  burgMag;
         int     seed;
-        int     type;
+        int     type, nThreads;
         bool    help;
 
         vector<string>  inpFiles, outFiles;
@@ -67,6 +87,7 @@ typedef	enum{
     OPT_TYPE,
     OPT_PRIVATEVALS,
     OPT_AUXFILE,
+    OPT_THREADS,
 	OPT_MAX
 }OPT_t;
 
@@ -75,9 +96,15 @@ typedef	enum{
     FTYPE_PROC_EXTEND_DIS_DDD,
     FTYPE_PROC_EXTEND_DIS_MD,
     FTYPE_SPECIFY_EQUATIONS,
+    FTYPE_GENERATE_DISLOCATION,
 	FTYPE_MAX
 }FTYPE_t;
 
+typedef enum{
+    INT_DATA = 0,
+    DOUBLE_DATA,
+    STRING_DATA
+}DATA_TYPE;
 /*
  *      Define a structure to hold a command line option's id (type),
  *      name, the shortest possible unique abbreviation of the option
@@ -91,11 +118,25 @@ typedef struct {
 } Option_t;
 
 typedef struct {
+        int     type;
+        string  name;
+        string  val;
+}Variable_t;
+
+typedef struct {
+    string                  T, F;
+    int                     i,j,k;
+    double                  solutionTime;
     vector<string>          variables;
+    map<string, string>     aux;
     vector<vector<double> > data;
 } Table_t;
 
 typedef struct {
+    string                  T, F;
+    int                     i,j,k;
+    double                  solutionTime;
+    map<string, string>     aux;
     vector<string>          variables;
     vector<vector<double> > data;
 }LineList_t;

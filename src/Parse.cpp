@@ -2,6 +2,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <regex>
 
 #include "Home.h"
 #include "Util.h"
@@ -22,7 +23,6 @@ vector<string> GetFiles(const string &file)
     
     memset(basePath, '\0', sizeof(basePath));
     getcwdReturn = getcwd(basePath, sizeof(basePath));
-//    bpath = basePath;
 
     iPos = f.find_last_of('/');
     if(iPos == string::npos){
@@ -32,7 +32,7 @@ vector<string> GetFiles(const string &file)
         fdir = curDir + f.substr(0,iPos);
         fname = f.substr(iPos+1);
     }
-
+    std::regex regex(fname);
     
     if((dir = opendir(fdir.c_str())) == NULL){
         Fatal("Can not open dir %s", fdir.c_str());
@@ -44,8 +44,7 @@ vector<string> GetFiles(const string &file)
           continue;
         }else if(ptr->d_type == 8){   //file
             dname = ptr->d_name;
-            int loc = dname.find(fname, 0); 
-            if(loc != string::npos){
+            if(std::regex_match(dname, regex)){
                 strs.push_back(fdir + "/" + dname);
             }
         }else if(ptr->d_type == 10){    // link file
