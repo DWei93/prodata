@@ -641,7 +641,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                 states[file].z = probes[0].z;
                 states[file].timestep = dum.timestep;
                 states[file].separation = 0;
-                printf("file %d, nbrsize %d, timestep %d %f \n",file, (int)probes[0].nbr.size(), states[file].timestep, states[file].y);
+                printf("file %d, nbrsize %d, timestep %d %f\n",file, (int)probes[0].nbr.size(), (int)states[file].timestep, states[file].y);
                 if(logfile ==1){
                     states[file].vars.resize(list.variables.size()-1);
                     for(i=0; i<list.data[0].size(); i++){

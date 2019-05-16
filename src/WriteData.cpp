@@ -74,9 +74,10 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
         }
     }
 
-    if(secLine != ""){
-        out << secLine << endl;
-    }
+    out << "zone i = " << table.i << ", j = " << table.j << ", k = " << table.k;
+    if(table.T.length() != 0) out << ", T = \"" << table.T << "\"";
+    if(table.solutionTime >=0) out << ", SOLUTIONTIME = " << table.solutionTime;
+    out << "\n";
 
     if(!table.aux.empty()){
         for(const auto &pair : table.aux){

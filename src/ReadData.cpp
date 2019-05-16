@@ -34,7 +34,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     int  i, numPoints = 1, j;
     char str[MAXLINELENGTH], delim[] = " \t\",\n", *p, *token;
     char quotation[]="\"\n";
-    char name[256];
+    char name[256], *rt;
     FILE *fp;
     if((fp = fopen(file.c_str(), "r+")) == NULL){
         printf("Warning: can not open fie %s\n", file.c_str());
@@ -47,13 +47,29 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     vector<string>().swap(table.variables);
     vector<vector<real8> >().swap(table.data);
     table.aux.clear();
+    table.i=1;
+    table.j=1;
+    table.k=1;
+    table.solutionTime = -1;
+    table.T="";
+
+    std::regex equation("\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
+    std::regex aux_equation("AUXDATA\\s+\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
+    std::regex var_name("[a-zA-Z]+[a-zA-z0-9_\\-]*");
+    std::regex value("[a-zA-z0-9_\\.\\+\\-]+");
+
+    std::smatch equation_match;
+    std::smatch v_match;
+
+    std::string buff0, buff1, buff2;
+
     Variable_t  auxVar;
 
     bool    firstPoint = 1;
     int     currSize;
     char    *p2;
     while(1){
-        fgets(str, MAXLINELENGTH, fp);
+        rt = fgets(str, MAXLINELENGTH, fp);
         if(feof(fp))break;
         if(str == "\n" || str == NULL)continue;
 
@@ -73,10 +89,51 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 //            printf("\n");
             continue;
         }
-        
+#if 1
+        buff0 = str;
+        if(std::regex_search(buff0, equation_match, aux_equation)){
+            buff1 = equation_match[0].str();
+            if(std::regex_search(buff1, v_match, var_name)){
+                buff2 = v_match.suffix().str();
+                if(std::regex_search(buff2, v_match, var_name)){
+                    buff1 = v_match[0].str();
+                    buff2 = v_match.suffix().str();
+                    if(std::regex_search(buff2, v_match, value)){
+                        table.aux[buff1] = v_match[0].str();
+                    }
+                }
+            }
+            continue;
+        }else if(std::regex_search(buff0,equation_match, equation)){
+             buff1 = buff0;
+             while(std::regex_search(buff1,equation_match, equation)){
+                buff2 = equation_match[0].str();
+                if(std::regex_search(buff2,v_match, var_name)){
+                    buff2 = v_match[0].str();
+                    buff1 = v_match.suffix().str();
+                    if(std::regex_search(buff1, v_match, value)){
+                        if(buff2 == "T"){
+                            table.T = v_match[0].str(); 
+                        }else if (buff2 == "I" || buff2 == "i"){
+                            table.i = atoi(v_match[0].str().c_str());
+                        }else if (buff2 == "J" || buff2 == "j"){
+                            table.j = atoi(v_match[0].str().c_str());
+                        }else if (buff2 == "K" || buff2 == "k"){
+                            table.k = atoi(v_match[0].str().c_str());
+                        }else if (buff2 == "SOLUTIONTIME" || buff2 == "solutiontime"){
+                            table.solutionTime = atof(v_match[0].str().c_str());
+                        }else{
+                            printf("Warning: can not identify %s", buff2.c_str());
+                        }
+                    }
+                }
+                buff1 = equation_match.suffix().str();
+            }
+            continue;
+        }
+#else   
 //        if(strstri(str, "Zone") != NULL || strstri(str, "ZONE") != NULL || strstri(str, "zone") != NULL){
         if(strstri(str, "zone") != NULL){
-            secLine = strtok(str, "\n");
 //            printf("second line: %s\n", secLine.c_str());
 
             if((p2 = strstr(str, "T = ")) != (char *)NULL){
@@ -126,7 +183,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
             }
             continue;
         }
-       
+#endif  
         if(firstPoint){
             firstPoint = 0;
             if(table.variables.size() == 0){
@@ -149,6 +206,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                 }
                 sprintf(str, "%s", strBak);
             }
+            numPoints = table.i*table.j*table.k;
         }
 
 
@@ -162,7 +220,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                 for(j=1; j<table.variables.size(); j++){
                     table.data[i][j] = atof(strtok(NULL, " \n"));
                 }
-                (char *)fgets(str, MAXLINELENGTH, fp);
+                rt = fgets(str, MAXLINELENGTH, fp);
             }
         }else{
             currSize = (int)table.data.size();
@@ -179,7 +237,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     }
     fclose(fp);
 
-    if(table.data.size() != currSize+1)table.data.resize(currSize+1);
+    if((int)table.data.size() != table.i*table.j*table.k)table.i = (int)table.data.size();
 //    printf("Finish reading input file %s, %d points\n", file.c_str(), currSize+1);    
     return 1;            
 }
@@ -379,13 +437,13 @@ bool ReadLMPFile(const string file, Dump_t &dum)
         return(0);
     }
 
-    char str[MAXLINELENGTH], delim[] = " \t", *p;
+    char str[MAXLINELENGTH], delim[] = " \t", *p, *rt;
     dum.box.resize(3);
     dum.bounds.resize(3);
     for(int i = 0; i<3; i++)dum.box[i].resize(2);
 
     while(!feof(fp)){
-        fgets(str, MAXLINELENGTH, fp);
+        rt = fgets(str, MAXLINELENGTH, fp);
         
         if((p = strstr(str, "atoms")) != NULL){
             dum.atom.resize(atoi(str));
@@ -435,9 +493,9 @@ bool ReadLMPFile(const string file, Dump_t &dum)
         }
 
         if((p = strstr(str, "Atoms")) != NULL){
-            fgets(str, MAXLINELENGTH, fp);
+            rt = fgets(str, MAXLINELENGTH, fp);
             for(int i=0; i<dum.atom.size(); i++){
-                fgets(str, MAXLINELENGTH, fp);
+                rt = fgets(str, MAXLINELENGTH, fp);
                 dum.atom[i].id = atoi(strtok(str, delim));
                 dum.atom[i].type = atoi(strtok(NULL, delim));
                 dum.atom[i].x = atof(strtok(NULL, delim));
