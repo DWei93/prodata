@@ -124,7 +124,7 @@ typedef struct {
 }Variable_t;
 
 typedef struct {
-    string                  T;
+    string                  T, F;
     int                     i,j,k;
     double                  solutionTime;
     vector<string>          variables;
@@ -133,6 +133,10 @@ typedef struct {
 } Table_t;
 
 typedef struct {
+    string                  T, F;
+    int                     i,j,k;
+    double                  solutionTime;
+    map<string, string>     aux;
     vector<string>          variables;
     vector<vector<double> > data;
 }LineList_t;

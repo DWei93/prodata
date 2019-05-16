@@ -56,5 +56,7 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs);
 void SpecifyEquations(Table_t &table);
 void FormatVector(real8 vec[3], const char *msg);
 
+void InitList(LineList_t &list);
+void InitTable(Table_t &table);
 
 #endif

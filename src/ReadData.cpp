@@ -8,7 +8,7 @@
 #include "DDD.h"
 #include "MD.h"
 
-#define     MAXLINELENGTH 512
+#define     MAXLINELENGTH 1024
 
 using namespace std;
 const char* strstri(const char* str, const char* subStr)
@@ -43,21 +43,13 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
 //        printf("Reading tecplot file %s ...\n", file.c_str());
     }
 
+    InitTable(table);
     secLine = "";
-    vector<string>().swap(table.variables);
-    vector<vector<real8> >().swap(table.data);
-    table.aux.clear();
-    table.i=1;
-    table.j=1;
-    table.k=1;
-    table.solutionTime = -1;
-    table.T="";
 
-    std::regex equation("\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
     std::regex aux_equation("AUXDATA\\s+\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
+    std::regex equation("\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
     std::regex var_name("[a-zA-Z]+[a-zA-z0-9_\\-]*");
     std::regex value("[a-zA-z0-9_\\.\\+\\-]+");
-
     std::smatch equation_match;
     std::smatch v_match;
 
@@ -114,6 +106,8 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                         if(std::regex_search(buff1, v_match, value)){
                             if(buff2 == "T"){
                                 table.T = v_match[0].str(); 
+                            }else if (buff2 == "F"){
+                                table.F = v_match[0].str(); 
                             }else if (buff2 == "I" || buff2 == "i"){
                                 table.i = atoi(v_match[0].str().c_str());
                             }else if (buff2 == "J" || buff2 == "j"){
@@ -185,7 +179,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     fclose(fp);
 
     if((int)table.data.size() != table.i*table.j*table.k)table.i = (int)table.data.size();
-//    printf("Finish reading input file %s, %d points\n", file.c_str(), currSize+1);    
+    printf("Finish reading input file %s, %d points\n", file.c_str(), currSize+1);    
     return 1;            
 }
 

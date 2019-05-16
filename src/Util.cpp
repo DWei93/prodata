@@ -379,6 +379,31 @@ void FormatVector(real8 vec[3], const char *msg){
 	printf("{%.15f,%.15f,%.15f}\n", vec[0], vec[1], vec[2]);
 }
 
+void InitList(LineList_t &list){
+    vector<string>().swap(list.variables);
+    vector<vector<real8> >().swap(list.data);
+    list.aux.clear();
+    list.i=1;
+    list.j=1;
+    list.k=1;
+    list.solutionTime = -1;
+    list.T="";
+    list.F = "Point";
+    return;
+}
+
+void InitTable(Table_t &table){
+    vector<string>().swap(table.variables);
+    vector<vector<real8> >().swap(table.data);
+    table.aux.clear();
+    table.i=1;
+    table.j=1;
+    table.k=1;
+    table.solutionTime = -1;
+    table.T="";
+    table.F = "Point";
+    return;
+}
 
 bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
 {

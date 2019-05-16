@@ -14,7 +14,6 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
     int     i, j;
     string  fn(file), plt(".plt");
 
-
     if(fn.length() > 4){
         int loc = fn.find(plt, fn.length()-5); 
         if(loc == string::npos){
@@ -33,6 +32,22 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
             out << list.variables[i] << ", ";
         }else{
             out << list.variables[i] << endl;
+        }
+    }
+
+    if(((int)list.data[0].size()) != list.i*list.j*list.k){
+        Fatal("somthing wrong with the list size %d != %dx%dx%d",
+              (int)list.data[0].size(), list.i, list.j, list.k);
+    }
+
+    out << "zone i = " << list.i << ", j = " << list.j << ", k = " << list.k;
+    if(list.T.length() != 0) out << ", T = \"" << list.T << "\"";
+    if(list.solutionTime >=0) out << ", SOLUTIONTIME = " << list.solutionTime;
+    out << ", F = " << list.F << "\n";
+
+    if(!list.aux.empty()){
+        for(const auto &pair : list.aux){
+            out << "AUXDATA " << pair.first << " = \"" << pair.second << "\"\n";
         }
     }
 
@@ -74,10 +89,14 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
         }
     }
 
+    if(((int)table.data.size()) != table.i*table.j*table.k){
+        Fatal("somthing wrong with the table size %d != %dx%dx%d",
+              (int)table.data.size(), table.i, table.j, table.k);
+    }
     out << "zone i = " << table.i << ", j = " << table.j << ", k = " << table.k;
     if(table.T.length() != 0) out << ", T = \"" << table.T << "\"";
     if(table.solutionTime >=0) out << ", SOLUTIONTIME = " << table.solutionTime;
-    out << "\n";
+    out << ", F = " << table.F << "\n";
 
     if(!table.aux.empty()){
         for(const auto &pair : table.aux){

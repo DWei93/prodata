@@ -19,8 +19,9 @@ void AverageLines(InArgs_t *inArgs)
 
     bool        calTau = 0;
     LineList_t  list;
-    Curve_t     curve;
+    InitList(list);
 
+    Curve_t     curve;
     vector<int>         varID;
     vector<real8>       seq;
     vector<Table_t>     tables(inArgs->inpFiles.size());
@@ -54,7 +55,7 @@ void AverageLines(InArgs_t *inArgs)
     }else{
         printf("The variance (tau) will not been caculated\n");
     }
-
+    
     if((index = GetValID(inArgs->priVars, specifyEquName)) < inArgs->priVars.size()){
         specifyEqu = atoi(inArgs->priVars[index].vals[0].c_str());
     }
@@ -109,10 +110,14 @@ void AverageLines(InArgs_t *inArgs)
     vector<real8>   weightList(inArgs->inpFiles.size());
     real8   totalWeight = 0.0;       
     int     firstReadFile = -1;        
+    Table_t auxTable;
+    InitTable(auxTable);
+
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState){
             weightList[i] = 0.0;
+            Fatal("can not read file %s", inArgs->inpFiles[i].c_str());
             continue;
         }else{
             if(firstReadFile < 0){
@@ -180,10 +185,37 @@ void AverageLines(InArgs_t *inArgs)
             min = tables[i].data[0][colX];
             max = tables[i].data[tables[i].data.size()-1][colX];
             firstFile = 0;
+
+            if(!tables[i].aux.empty()){
+                auxTable.data.resize(inArgs->inpFiles.size());
+                auxTable.i = (int)inArgs->inpFiles.size();
+                printf("Auxiliary variables: ");
+
+                auxTable.variables.push_back("file");
+                auxTable.data[0].push_back((real8)i);
+
+                for(const auto &pair : tables[i].aux){
+                    printf("%s ", pair.first.c_str());
+                    auxTable.variables.push_back(pair.first);
+                    auxTable.data[0].push_back(atof(pair.second.c_str()));
+                }
+                printf("\n");
+            }
+
         }else{
             if(min < tables[i].data[0][colX]) min = tables[i].data[0][colX];
             if(max > tables[i].data[tables[i].data.size()-1][colX]){
                 max = tables[i].data[tables[i].data.size()-1][colX];
+            }
+
+            if(auxTable.variables.size()>0){
+                auxTable.data[i].resize(auxTable.variables.size());
+                j = 0;
+                auxTable.data[i][j++] = (real8)i;
+
+                for(const auto &pair : tables[i].aux){
+                    auxTable.data[i][j++] = (atof(pair.second.c_str()));
+                }
             }
         }
 
@@ -297,6 +329,31 @@ void AverageLines(InArgs_t *inArgs)
         }
     }
 
+    if(auxTable.data.size() > 0){
+
+        real8 aveAuxVal;
+        char  val[50];
+        for(i=1; i<auxTable.variables.size(); i++){
+            if(auxTable.variables[i] ==  weightCoeff)continue;
+            
+            aveAuxVal = 0.0;
+            for(j=0; j<auxTable.data.size(); j++){
+                aveAuxVal += (auxTable.data[j][i]*weightList[j]/totalWeight);
+            }
+            
+            snprintf(val, sizeof(val), "%e", aveAuxVal);
+            auxTable.aux[std::string("Ave_")+auxTable.variables[i]] = val;
+            list.aux[std::string("Ave_")+auxTable.variables[i]] = val;
+        }
+
+        if(inArgs->outFiles.size() < 2){
+//            WriteTecplotNormalData(auxTable, std::string("auxTable.plt"), 10);
+        }else{
+            WriteTecplotNormalData(auxTable,  inArgs->outFiles[1], 10);
+        }
+    }
+
+    list.i = ((int)list.data[0].size());
     WriteTecplotNormalData(list, inArgs->outFiles[0], 10);
 
     return;
