@@ -1,19 +1,20 @@
 
 Introduction
 This is a parallel bulk data processing software, which can process the data of the molecular dynamics software LAMMPS and 
-the discrete dislocation Dynamics platform ParaDiS, the main functions include:
+the discrete dislocation dynamics platform ParaDiS, the main functions include:
 1. Weighted average of data for multiple tables;
-2. Mechanical behavior Analysis of single expansion dislocation in DDD and MD simulations;
+2. Mechanical behavior Analysis of single extended dislocation in both DDD and MD simulations;
 3. Generating various types of dislocation atomic geometric models in LAMMPS based on non-singular dislocation theory;
-4. Parsing the data format of the Tecplot software for complex and customized data processing.
+4. Parsing the data format of Tecplot software for complex and customized data processing;
+5. Parsing the data format from LAMMPS.
 
 Usage environment
-1. c++11
-2. cmake 2.8
-3. gcc 7
+1. c++11+ 
+2. cmake 2.8+ 
+3. gcc 7+
 
 Install
-mkdir build && cd build && cmake ../
+mkdir build && cd build && cmake ../ -DCMAKE_INSTALL_PREFIX=path/to/install/prodata && make -j install
 
  
 

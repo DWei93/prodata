@@ -151,8 +151,8 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
 }
 
 
-#define DisDisPlacement(r) (0.5 + sqrt(M_PI)*(r)*(15.0+10.0*M_PI*(r)*(r) + 2.0*M_PI*M_PI*(r)*(r)*(r)*(r)) \
-                              / (4.0*pow((2.0 + M_PI*(r)*(r)), 2.5)) )
+#define DisDisPlacement(r) (sqrt(M_PI)*(r)*(15.0+10.0*M_PI*(r)*(r) + 2.0*M_PI*M_PI*(r)*(r)*(r)*(r)) \
+                             / (4.0*pow((2.0 + M_PI*(r)*(r)), 2.5)) )
 
 void GenerateExtendedDislocation(InArgs_t *inArgs)
 {
@@ -251,7 +251,6 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
     real8   point[3], vec1[3], vec2[3], displace, vec[3], dis1, dis2;
     real8   a, b, angle;
 
-
 #pragma omp parallel for shared(dum) private (j,point,vec,vec1,vec2,dis1,dis2,displace,a,b, angle)
     for(i=0; i<dum.atom.size(); i++){
 
@@ -263,9 +262,9 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
             VECTOR_COPY(vec, posList[j]);
 
             PointLineIntersection(point, line, vec, vec1, &dis1);
-            vec1[0] -= point[0];
-            vec1[1] -= point[1];
-            vec1[2] -= point[2];
+            vec1[0] = point[0] - vec1[0];
+            vec1[1] = point[1] - vec1[1];
+            vec1[2] = point[2] - vec1[2];
 
             NormalizeVec(vec1);
 
@@ -273,13 +272,14 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
             b = DotProduct(vec1, normal); 
 
             angle = atan2(b, a)/M_PI;
-            if(angle < 0)angle += 1;
-            angle /= 2.0;
+
+//            if(angle < 0)angle += 1;
+//            angle /= 2.0;
         
             displace = angle*DisDisPlacement(dis1);
             if(std::isnan(displace)){
                 displace = 0;
-                printf("0");
+                printf("nan: %f %f %f %f %f\n", a, b, angle, dis1, DisDisPlacement(dis1));
             }
             dum.atom[i].x += burgList[j][0]*displace;
             dum.atom[i].y += burgList[j][1]*displace;
