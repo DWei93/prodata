@@ -66,7 +66,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
         if(str == "\n" || str == NULL)continue;
 
         if(firstPoint){
-            if(strstr(str, "variables") != NULL){
+            if(strstri(str, "variables") != NULL){
                 token = strtok(str, "=");
                 while(1){
                     if((token = strtok(NULL, delim)) != NULL){
@@ -76,9 +76,6 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     }
 //                    table.variables.push_back(strtok(NULL, delim));
                 }
-//                printf("variables: ");
-//                for(i=0;i<table.variables.size();i++)printf("%s ", table.variables[i].c_str());
-//                printf("\n");
                 continue;
             }
 
@@ -171,15 +168,12 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
             for(j=1; j<table.variables.size(); j++){
                 table.data[currSize][j] = atof(strtok(NULL, " \n"));
             }
-//            printf("%d: ", currSize);
-//            for(i=0;i<table.data[currSize].size(); i++)printf("%f ", table.data[currSize][i]);
-//            printf("\n");
         }
     }
     fclose(fp);
 
     if((int)table.data.size() != table.i*table.j*table.k)table.i = (int)table.data.size();
-    printf("Finish reading input file %s, %d points\n", file.c_str(), currSize+1);    
+    printf("Finish reading input file %s, %d points\n", file.c_str(), (int)table.data.size());    
     return 1;            
 }
 

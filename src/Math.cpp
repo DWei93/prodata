@@ -140,6 +140,7 @@ void AverageLines(InArgs_t *inArgs)
         }else{
             weightList[i] = 1.0;
         }
+
         totalWeight += weightList[i];
 
         if(specifyEqu){
@@ -330,7 +331,7 @@ void AverageLines(InArgs_t *inArgs)
     }
 
     if(auxTable.data.size() > 0){
-
+        printf("Aux variables:");
         real8 aveAuxVal;
         char  val[50];
         for(i=1; i<auxTable.variables.size(); i++){
@@ -345,6 +346,11 @@ void AverageLines(InArgs_t *inArgs)
             auxTable.aux[std::string("Ave_")+auxTable.variables[i]] = val;
             list.aux[std::string("Ave_")+auxTable.variables[i]] = val;
         }
+        for(auto &it : list.aux)printf("%s ", it.first.c_str());
+        if(auxTable.data.size() > 0)printf("\n");
+        for(auto &it : list.aux)printf("%s ", it.second.c_str());
+        if(auxTable.data.size() > 0)printf("\n");
+        
 
         if(inArgs->outFiles.size() < 2){
 //            WriteTecplotNormalData(auxTable, std::string("auxTable.plt"), 10);
@@ -519,63 +525,25 @@ int PointLineIntersection(double *p1, double *d, double *p2,
     double  p1x = p1[0], p1y=p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y=p2[1], p2z = p2[2];
     double  dx = d[0], dy=d[1], dz = d[2];
-    double  norm, norm2, invNorm, t;
+    double  normal2, t;
 
-    VECTOR_ZERO(vec);
-    norm = sqrt(SQUARE(dx) + SQUARE(dy) + SQUARE(dz));
-    invNorm = 1.0/norm;
-
-    if(norm < EPS1){
-        Fatal("PointLineIntersection: line direction is zero\n");
-        return(NO_INTERSECTION);
-    }
-
-    norm2 = sqrt(SQUARE(p1x-p2x) + SQUARE(p1y-p2y) + SQUARE(p1z-p2z));
-    if(norm2 < EPS1){
-        vec[0] = p2[0];
-        vec[1] = p2[1];
-        vec[2] = p2[2];
-        *dis = 0.0;
-        printf("0");
+    // if the two points are too close, point 2 is identified as the intersection point.
+    normal2 = SQUARE(p1x-p2x) + SQUARE(p1y-p2y) + SQUARE(p1z-p2z);
+    if(normal2 < EPS2*EPS2){
+        VECTOR_COPY(vec, p2); *dis = sqrt(normal2);
+        if(isnan(*dis))*dis=0.0;
         return(POINT_INTERSECTION);
     }
 
-#if 0 
-    if(fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z)) > norm*norm2*(1-EPS1)){
-        vec[0] = p1[0];
-        vec[1] = p1[1];
-        vec[2] = p1[2];
-        *dis = 0.0;
-        return(POINT_INTERSECTION);
-    }
-#endif
-
-    t = (dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z))*(invNorm*invNorm);
+    normal2=dx*dx+dy*dy+dz*dz;
+    t = (dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z))/normal2;
     vec[0] = p2x + dx*t;
     vec[1] = p2y + dy*t;
     vec[2] = p2z + dz*t;
 
-    *dis = sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[1]-p1[1]) + SQUARE(vec[2]-p1[2]) );
+    *dis = SQUARE(vec[0]-p1[0]) + SQUARE(vec[1]-p1[1]) + SQUARE(vec[2]-p1[2]);
+    *dis = sqrt(*dis); if(isnan(*dis))*dis=0.0;
 
-    if(std::isnan(*dis) || std::isinf(*dis)){
-        printf(" PointLineIntersection: %f {%f,%f,%f}\n", 
-               *dis, vec[0], vec[1], vec[2]);
-        vec[0] = p1[0];
-        vec[1] = p1[1];
-        vec[2] = p1[2];
-    }
-
-    if(std::isnan(*dis))*dis = 0.0;
-    if(std::isinf(*dis)) *dis = 0.0;
-#if 0
-    if(*dis < EPS2 && sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0])) > 10000){
-        printf("vec: {%f,%f,%f}\n", vec[0], vec[1], vec[2]);
-        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
-        printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
-        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
-        printf("PointLineIntersection");
-    }
-#endif
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -794,5 +762,17 @@ void cross(real8 a[3], real8 b[3], real8 c[3])
 
 real8 Normal(real8 a[3])
 {
-        return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
+     return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
+}
+
+int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t){
+
+    double dot1 = nDir[0]*(p1[0]-point[0]) + nDir[1]*(p1[1]-point[1]) + nDir[2]*(p1[2]-point[2]);
+    double dot2 = nDir[0]*(p2[0]-point[0]) + nDir[1]*(p2[1]-point[1]) + nDir[2]*(p2[2]-point[2]);
+    
+    if(dot1*dot2 > 0)return(NO_INTERSECTION);
+
+    printf("dot: %e %e\n", dot1, dot2);
+    t = fabs(dot1)/(fabs(dot1)+fabs(dot2));
+    return(POINT_INTERSECTION);
 }

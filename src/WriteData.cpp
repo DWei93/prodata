@@ -13,7 +13,6 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
 {
     int     i, j;
     string  fn(file), plt(".plt");
-
     if(fn.length() > 4){
         int loc = fn.find(plt, fn.length()-5); 
         if(loc == string::npos){
@@ -131,6 +130,7 @@ int WriteDumpFile(const string &file, Dump_t &dum, int precision)
         fn += ".dum";
     }
 
+    clock_t     timestart = clock();
     ofstream out;
     out.open(fn.c_str(), ios::out);
     
@@ -173,6 +173,7 @@ int WriteDumpFile(const string &file, Dump_t &dum, int precision)
     }
 
     out.close();
+    printf("The output to file %s was completed (%fs)\n",file.c_str(), ((real8)(clock()-timestart))/CLOCKS_PER_SEC);
     return(0);
 }
 
@@ -182,6 +183,7 @@ int MGToLMPDataFile(const string &file, Dump_t &dum, int precision)
 {
     int     i, j, nTypes = 0;
     string  fn(file), plt(".lmp");
+    clock_t     timestart = clock();
 
     if(fn.length() > 4){
         int loc = fn.find(plt, fn.length()-5); 
@@ -221,5 +223,7 @@ int MGToLMPDataFile(const string &file, Dump_t &dum, int precision)
     }
 
     out.close();
+
+    printf("The output to file %s was completed (%fs)\n",file.c_str(), ((real8)(clock()-timestart))/CLOCKS_PER_SEC);
     return 0;
 }

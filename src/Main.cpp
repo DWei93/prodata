@@ -341,6 +341,33 @@ int main(int argc, char *argv[])
  *      All that's left is to invoke the proper function to
  *      handle data 
  */
+#if 0
+        
+        real8 p1[3] = {0,0,0};
+        real8 p2[3] = {0,0,0};
+        real8 nDir[3] = {0,0,1.0};
+        real8 point[3] = {1E10,1E80,0};
+        real8 t;
+        SegmentPlaneIntersection(p1, p2, nDir, point, t);
+
+        int test = 0;
+        test<<1;
+        printf("test<<1: %d\n", test);
+
+        test =1;
+        test<<=1;
+        printf("test<<=1: %d\n", test);
+
+        i=10; test = (i<<1)+1;
+        printf("(i<<1)+1 = %d\n", test);
+            
+        test = 0;
+        i=3;
+        test = 1+i<<1;
+        i=3; printf("1+3<<1: %d\n", test);
+
+        Fatal("t is %e",t);
+#else
         switch (inArgs.type) {
             case FTYPE_AVERAGE_LINES:
                 AverageLines(&inArgs);
@@ -358,7 +385,7 @@ int main(int argc, char *argv[])
                 GenerateDislocation(&inArgs);
                 break;
         }
-
+#endif
         exit(0);
 }
 

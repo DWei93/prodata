@@ -99,6 +99,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
             ReadTecplotNormalData(inArgs->auxFiles[file], auxTables[file], secLine);
         }
         StitchTecplotData(auxTables, auxTable, 0);
+        printf("auxTable size %d\n", (int)auxTable.data.size());
         if(auxTable.data.size() == 0){
             Fatal("the aux table size is zero.");
         }
@@ -371,7 +372,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
             }
         }
         
-        ZImage(boundMin, boundMax, disp, disp+1, disp+2);
+        ZImage(7, boundMin, boundMax, disp, disp+1, disp+2);
         outs[i][6] = disp[1];
         outs[i][7] = disp[1]/dt;
 
@@ -499,8 +500,12 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
     }
     printf("The range of effective separtion of the extended dislocation (separation) is [%f,%f]\n", effeSepRange[0], effeSepRange[1]);
 
-    if(inArgs->help)return;
+    InitList(list);
     logfile = ReadDataFromMDLogFile(inArgs->auxFiles, list);
+    list.i=(int)list.data[0].size();
+    WriteTecplotNormalData(list, "auxfile.plt", 10);
+    if(inArgs->help)return;
+
 
     states.resize(inArgs->inpFiles.size());
     for(file=0; file<inArgs->inpFiles.size(); file++){
