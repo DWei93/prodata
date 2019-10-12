@@ -186,8 +186,7 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
     real8   x0, y0, x1, y1, t, boundVal;
     int     i;    
 
-    if(curve.ax.size()<2)
-        Fatal("there is no enough data for interpolation (%d)", (int)curve.ax.size());
+    if(curve.ax.size()<2)return 0.0;
     if(curve.ax[0] == curve.ax.back())
         Fatal("the range of line is zero in LineInterpolation");
 
@@ -404,6 +403,18 @@ void InitTable(Table_t &table){
     return;
 }
 
+bool cmp(vector<double> &p, vector<double> &q)
+{
+    return p[0]<q[0];
+}
+void SortTable(Table_t &table, int sortColID)
+{
+    swap(table.variables[0], table.variables[sortColID]);
+    for(auto &a : table.data){
+        swap(a[0],a[sortColID]);
+    }
+    sort(table.data.begin(), table.data.end(),cmp);
+}
 bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
 {
     if(nums < 3)return 0;

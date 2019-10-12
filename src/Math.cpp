@@ -14,10 +14,10 @@ void AverageLines(InArgs_t *inArgs)
     int     readState;
     bool    firstFile = 1, specifyEqu = 0;
     real8   rsize = 0, min, max, effNums = 0, value;
-    string  rsizeName("rsize"), varsName("vars"), overName("over"), specifyEquName("spe");
+    string  rsizeName("rsize"), varsName("vars"), overName("over"), specifyEquName("spe"), sortName("sort"), sortBy;
     string  str("Ave_"), secLine, tauName("tau"), overVar, weighName("weigh"), weightCoeff;
 
-    bool        calTau = 0;
+    bool        calTau = false, sort=false;
     LineList_t  list;
     InitList(list);
 
@@ -63,6 +63,12 @@ void AverageLines(InArgs_t *inArgs)
         printf("Specifing equations (spe) is on.\n");
     }else{
         printf("Specifing equations (spe) is off.\n");
+    }
+
+    if((index = GetValID(inArgs->priVars, sortName)) < inArgs->priVars.size()){
+        sort = true;
+        sortBy = inArgs->priVars[index].vals[0];
+        printf("auxiliary table sorted by (sort) %s\n", sortBy.c_str());
     }
 
     if((index = GetValID(inArgs->priVars, varsName)) < inArgs->priVars.size()){
@@ -191,7 +197,6 @@ void AverageLines(InArgs_t *inArgs)
                 auxTable.data.resize(inArgs->inpFiles.size());
                 auxTable.i = (int)inArgs->inpFiles.size();
                 printf("Auxiliary variables: ");
-
                 auxTable.variables.push_back("file");
                 auxTable.data[0].push_back((real8)i);
 
@@ -279,14 +284,13 @@ void AverageLines(InArgs_t *inArgs)
 
                 if(rsize == 0){
                     if(seq.size() != curve.ay.size()){
-                        Fatal("the %d table has a differnt size (%d) from the basic one (%d)",
+                        printf("Warning: the %d table has a differnt size (%d) from the basic one (%d)\n",
                                i, (int)seq.size(), (int)curve.ay.size());
                     }
                     for(k=0; k<seq.size(); k++){
                         list.data[j][k] += (curve.ay[k]*weightList[i]/totalWeight);
+                        if(calTau)array[i][j-1][k] = curve.ay[k];
                     }
-//                    printf("%e %e %e %e %d\n", list.data[j][k],curve.ay[k],weightList[i],totalWeight, (int)curve.ay.size()); 
-                    if(calTau)array[i][j-1][k] = curve.ay[k];
 
                 }else{
                     for(k=0; k<seq.size(); k++){
@@ -346,15 +350,18 @@ void AverageLines(InArgs_t *inArgs)
             auxTable.aux[std::string("Ave_")+auxTable.variables[i]] = val;
             list.aux[std::string("Ave_")+auxTable.variables[i]] = val;
         }
+        if(sort==true){
+            for(i=0; i<auxTable.variables.size(); i++){
+                if(auxTable.variables[i]==sortBy)break;
+            }
+            SortTable(auxTable, i);
+        }
         for(auto &it : list.aux)printf("%s ", it.first.c_str());
         if(auxTable.data.size() > 0)printf("\n");
         for(auto &it : list.aux)printf("%s ", it.second.c_str());
         if(auxTable.data.size() > 0)printf("\n");
         
-
-        if(inArgs->outFiles.size() < 2){
-//            WriteTecplotNormalData(auxTable, std::string("auxTable.plt"), 10);
-        }else{
+        if(inArgs->outFiles.size() >= 2){
             WriteTecplotNormalData(auxTable,  inArgs->outFiles[1], 10);
         }
     }

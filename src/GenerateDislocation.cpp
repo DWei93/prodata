@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <functional>
 #include <regex>
+#include "math.h"
 
 #include "Home.h"
 #include "Util.h"
@@ -8,6 +9,7 @@
 #include "DDD.h"
 #include "MD.h"
 #include "Math.h"
+
 
 using namespace std;
 
@@ -114,7 +116,8 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
         }
     } 
 
-    real8  point[3], dvec[3], dis, vec[3], a, b, shift;
+    real8  point[3], dvec[3], dis, vec[3];
+    real8   a, b, shift;
 
     if(nPairs > 0){
     while(nPairs > 0){
@@ -178,12 +181,12 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
 
 void GenerateExtendedDislocation(InArgs_t *inArgs)
 {
-    int     index, nDiss, i;
+    int     index, i;
     string  posName("pos"), lineName("line"), separationName("separation"), gDirName("gdir");
     string  burgName("burg"), pbcName("bound"), debugName("debug");
     real8   boundMax[3], boundMin[3], pos[3];
     real8   line[3] = {1,0,0}, separation = 10.0, gDir[3] = {0,1,0}, normal[3];
-    vector<vector<real8> > burgList, posList;
+    vector<vector<real8> > burgList(2), posList(2);
     int     pbc = 0;
 
     bool debug=false;
@@ -266,30 +269,21 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         }
         NormalizeVec(gDir);
     }
-    printf("The glide direction of dislocation (gDir): {%f, %f, %f}\n", gDir[0], gDir[1], gDir[2]);
-
-    pos[0] -= gDir[0]*0.5*separation;
-    pos[1] -= gDir[1]*0.5*separation;
-    pos[2] -= gDir[2]*0.5*separation;
+    printf("The glide direction of dislocation (gdir): {%f, %f, %f}\n", gDir[0], gDir[1], gDir[2]);
 
     if((index = GetValID(inArgs->priVars, burgName)) < inArgs->priVars.size()){
 
-        nDiss = (int)(inArgs->priVars[index].vals.size());
-        nDiss /= 3;
-        burgList.resize(nDiss);
-        posList.resize(nDiss);
-
-        printf("%d dislocations: \n", nDiss);
-        for(i=0; i<burgList.size(); i++){
+        printf("two partial dislocations: \n");
+        for(i=0; i<2; i++){
             burgList[i].resize(3);
             posList[i].resize(3);
             burgList[i][0] = atof(inArgs->priVars[index].vals[3*i].c_str());
             burgList[i][1] = atof(inArgs->priVars[index].vals[3*i+1].c_str());
             burgList[i][2] = atof(inArgs->priVars[index].vals[3*i+2].c_str());
 
-            posList[i][0] = pos[0] + gDir[0]*separation*((real8)i);
-            posList[i][1] = pos[1] + gDir[1]*separation*((real8)i);
-            posList[i][2] = pos[2] + gDir[2]*separation*((real8)i);
+            posList[i][0] = pos[0] + gDir[0]*separation*((real8)i-0.5);
+            posList[i][1] = pos[1] + gDir[1]*separation*((real8)i-0.5);
+            posList[i][2] = pos[2] + gDir[2]*separation*((real8)i-0.5);
             
             printf("%d: position {%f,%f,%f}, burg {%f,%f,%f}\n", i, posList[i][0], posList[i][1], posList[i][2],
                     burgList[i][0], burgList[i][1], burgList[i][2]);
@@ -335,18 +329,19 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
 #pragma omp parallel for shared(dum) private (j,point,vec,vec1,vec2,dis1,dis2,displace,a,b, angle)
     for(i=0; i<dum.atom.size(); i++){
 
-        point[0] = dum.atom[i].x;
-        point[1] = dum.atom[i].y;
-        point[2] = dum.atom[i].z;
+        point[0] = dum.atom[i].x; if((pbc & 0x01) > 0)point[0] -= pos[0];
+        point[1] = dum.atom[i].y; if((pbc & 0x02) > 0)point[1] -= pos[1];
+        point[2] = dum.atom[i].z; if((pbc & 0x04) > 0)point[2] -= pos[2];
         
-        for(j=0; j<nDiss; j++){
-            VECTOR_COPY(vec, posList[j]);
+        for(j=0; j<2; j++){
+            vec[0] = posList[j][0]; if((pbc & 0x01) > 0)vec[0] -= pos[0];
+            vec[1] = posList[j][1]; if((pbc & 0x02) > 0)vec[1] -= pos[1];
+            vec[2] = posList[j][2]; if((pbc & 0x04) > 0)vec[2] -= pos[2];
 
             PointLineIntersection(point, line, vec, vec1, &dis1);
             vec1[0] = point[0] - vec1[0];
             vec1[1] = point[1] - vec1[1];
             vec1[2] = point[2] - vec1[2];
-            ZImage(pbc, boundMin, boundMax, vec1, vec1+1, vec1+2);
 
             NormalizeVec(vec1);
 
@@ -355,8 +350,8 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
 
             angle = std::atan2(b, a)/M_PI;
 
-            if(angle < 0)angle += 1;
-            angle /= 2.0;
+//            if(angle < 0)angle += 1;
+//            angle /= 2.0;
         
             displace = angle*DisDisPlacement(dis1);
             if(std::isnan(displace)){
@@ -372,7 +367,7 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         if(!debug)FoldBox(pbc, boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
     }
 
-    for(i=0; i<nDiss; i++){
+    for(i=0; i<2; i++){
         if((pbc & 0x01) == 0){
             dum.box[0][0] -= (burgList[i][0]/2.0);
             dum.box[0][1] += (burgList[i][0]/2.0);

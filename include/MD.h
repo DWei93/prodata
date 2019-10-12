@@ -22,7 +22,7 @@
 typedef struct{
     int     id, type;
     double  x, y, z;
-
+    double  vx, vy, vz;
     vector<double> vars;
 }Atom_t;
 

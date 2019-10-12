@@ -219,7 +219,10 @@ int MGToLMPDataFile(const string &file, Dump_t &dum, int precision)
         out << dum.atom[i].id << " "<< dum.atom[i].type << " ";
         out << setprecision(precision) << dum.atom[i].x << " ";
         out << setprecision(precision) << dum.atom[i].y << " ";
-        out << setprecision(precision) << dum.atom[i].z << endl;
+        out << setprecision(precision) << dum.atom[i].z << " ";
+        out << setprecision(precision) << dum.atom[i].vx << " ";
+        out << setprecision(precision) << dum.atom[i].vy << " ";
+        out << setprecision(precision) << dum.atom[i].vz << endl;
     }
 
     out.close();

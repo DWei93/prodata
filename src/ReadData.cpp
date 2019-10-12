@@ -49,7 +49,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     std::regex aux_equation("AUXDATA\\s+\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
     std::regex equation("\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
     std::regex var_name("[a-zA-Z]+[a-zA-z0-9_\\-]*");
-    std::regex value("[a-zA-z0-9_\\.\\+\\-]+");
+    std::regex value("\\S*[a-zA-z0-9_\\.\\+\\-]+");
     std::smatch equation_match;
     std::smatch v_match;
 
@@ -60,8 +60,11 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     bool    firstPoint = 1;
     int     currSize;
     char    *p2;
+    int     line=0;
     while(1){
+        line++;
         rt = fgets(str, MAXLINELENGTH, fp);
+        if(line==2)secLine=str;
         if(feof(fp))break;
         if(str == "\n" || str == NULL)continue;
 
@@ -318,6 +321,7 @@ int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list)
 
     vector<string>  words, subwords;
     SwapLineList(list);
+    InitList(list);
    
     firstTime = 1;
     for(i=0; i<files.size(); i++){
@@ -344,6 +348,7 @@ int ReadDataFromMDLogFile(const vector<string> &files, LineList_t &list)
         }
         infile.close();
     }
+    list.i = int(list.data[0].size());
 #if 0
     printf("List: ");
     for(j=0; j<list.variables.size(); j++){
@@ -429,13 +434,29 @@ bool ReadLMPFile(const string file, Dump_t &dum)
 
         if((p = strstr(str, "Atoms")) != NULL){
             rt = fgets(str, MAXLINELENGTH, fp);
-            for(int i=0; i<dum.atom.size(); i++){
+
+            bool readVelocity=false;
+            rt = fgets(str, MAXLINELENGTH, fp);
+            rt=strtok(str, delim);if(rt!=(char*)NULL)dum.atom[0].id=atoi(rt);else Fatal("can not read atom id");
+            rt=strtok(NULL, delim);if(rt!=(char*)NULL)dum.atom[0].type=atoi(rt);else Fatal("can not read atom type");
+            rt=strtok(NULL, delim);if(rt!=(char*)NULL)dum.atom[0].x=atof(rt);else Fatal("can not read atom coordinate x");
+            rt=strtok(NULL, delim);if(rt!=(char*)NULL)dum.atom[0].y=atof(rt);else Fatal("can not read atom coordinate y");
+            rt=strtok(NULL, delim);if(rt!=(char*)NULL)dum.atom[0].z=atof(rt);else Fatal("can not read atom coordinate z");
+            
+            rt=strtok(NULL, delim);if(rt!=(char*)NULL){
+                dum.atom[0].vx = atof(rt);
+                rt=strtok(NULL, delim);if(rt!=(char*)NULL)dum.atom[0].vy=atof(rt);else Fatal("can not read atom velocity y");
+                rt=strtok(NULL, delim);if(rt!=(char*)NULL)dum.atom[0].vz=atof(rt);else Fatal("can not read atom velocity z");
+            }else{dum.atom[0].vx = 0.0;dum.atom[0].vy = 0.0;dum.atom[0].vz = 0.0;}
+
+            for(int i=1; i<dum.atom.size(); i++){
                 rt = fgets(str, MAXLINELENGTH, fp);
                 dum.atom[i].id = atoi(strtok(str, delim));
                 dum.atom[i].type = atoi(strtok(NULL, delim));
                 dum.atom[i].x = atof(strtok(NULL, delim));
                 dum.atom[i].y = atof(strtok(NULL, delim));
                 dum.atom[i].z = atof(strtok(NULL, delim));
+                dum.atom[i].vx = 0.0;dum.atom[i].vy = 0.0;dum.atom[i].vz = 0.0;
             }
         }
     }
