@@ -1,7 +1,7 @@
 Project (PRODATA)
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 Message (STATUS "PRODATA_BINARY_DIR = " ${PRODATA_BINARY_DIR})
@@ -20,6 +20,17 @@ if(OPENMP_FOUND)
     message(STATUS "OpenMP_CXX_FLAGS = " ${OpenMP_CXX_FLAGS})  
     message(STATUS "OpenMP_EXE_LINKER_FLAGS = " ${OpenMP_EXE_LINKER_FLAGS})  
 endif()  
+
+Find_Package(GSL)
+If(GSL_FOUND)
+    Message(STATUS "GSL version " ${GSL_VERSION} " has been found")
+    Message(STATUS "GSL header file(s) are in " ${GSL_INCLUDE_DIRS})
+    Message(STATUS "GSL libraries are in " ${GSL_LIBRARIES})
+
+    message(STATUS "GSL_C_FLAGS = " ${GSL_C_FLAGS})  
+    message(STATUS "GSL_CXX_FLAGS = " ${GSL_CXX_FLAGS})  
+    message(STATUS "GSL_EXE_LINKER_FLAGS = " ${GSL_EXE_LINKER_FLAGS})  
+Endif(GSL_FOUND)
 
 Find_Package(GEOS)
 Message(STATUS "include and lib " ${GEOS_INCLUDE_DIR} " " ${GEOS_LIB_DIR})
