@@ -121,59 +121,62 @@ vector<double>  GenerateSequence(double from, double to, double meshSize)
     return(seq);
 }
 
-void FoldBox(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z)
+void FoldBox(int pbc, real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z)
 {
         real8   xc, yc, zc;
 
         real8   invLx, invLy, invLz, Lx, Ly, Lz;
 
-        xc = (boundMin[0] + boundMax[0]) * 0.5;
-        yc = (boundMin[1] + boundMax[1]) * 0.5;
-        zc = (boundMin[2] + boundMax[2]) * 0.5;
+        if((pbc & 0x01) > 0){
+            xc = (boundMin[0] + boundMax[0]) * 0.5;
+            Lx = boundMax[0] - boundMin[0];
+            invLx = 1.0/Lx;
+            *x -= rint((*x-xc)*invLx) * Lx;
+        }
 
-        Lx = boundMax[0] - boundMin[0];
-        invLx = 1.0/Lx;
-        Ly = boundMax[1] - boundMin[1];
-        invLy = 1.0/Ly;
-        Lz = boundMax[2] - boundMin[2];
-        invLz = 1.0/Lz;
-    
-        *x -= rint((*x-xc)*invLx) * Lx;
+        if((pbc & 0x02) > 0){
+            yc = (boundMin[1] + boundMax[1]) * 0.5;
+            Ly = boundMax[1] - boundMin[1];
+            invLy = 1.0/Ly;
+            *y -= rint((*y-yc)*invLy) * Ly;
+        }
 
-        *y -= rint((*y-yc)*invLy) * Ly;
+        if((pbc & 0x04) > 0){
+            zc = (boundMin[2] + boundMax[2]) * 0.5;
+            Lz = boundMax[2] - boundMin[2];
+            invLz = 1.0/Lz;
+            *z -= rint((*z-zc)*invLz) * Lz;
+        }
 
-        *z -= rint((*z-zc)*invLz) * Lz;
-    
         return;
 }
 
-void ZImage(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z)
+void ZImage(int pbc, real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z)
 {
-        real8   xc, yc, zc;
-
         real8   invLx, invLy, invLz, Lx, Ly, Lz;
 
-        xc = (boundMin[0] + boundMax[0]) * 0.5;
-        yc = (boundMin[1] + boundMax[1]) * 0.5;
-        zc = (boundMin[2] + boundMax[2]) * 0.5;
-
-        Lx = boundMax[0] - boundMin[0];
-        invLx = 1.0/Lx;
-        Ly = boundMax[1] - boundMin[1];
-        invLy = 1.0/Ly;
-        Lz = boundMax[2] - boundMin[2];
-        invLz = 1.0/Lz;
 /*
  *      If periodic boundaries are not in use, the provided position
  *      of (x,y,z) will not be adjusted since there are no other
  *      images available.
  */
-        *x -= rint(*x * invLx) * Lx;
+        if((pbc & 0x01) > 0){
+             Lx = boundMax[0] - boundMin[0];
+             invLx = 1.0/Lx;
+             *x -= rint(*x * invLx) * Lx;
+        }
+         
+        if((pbc & 0x02) > 0){
+             Ly = boundMax[1] - boundMin[1];
+             invLy = 1.0/Ly;
+             *y -= rint(*y * invLy) * Ly;
+        }
 
-        *y -= rint(*y * invLy) * Ly;
-
-        *z -= rint(*z * invLz) * Lz;
-    
+        if((pbc & 0x04) > 0){
+             Lz = boundMax[2] - boundMin[2];
+             invLz = 1.0/Lz;
+             *z -= rint(*z * invLz) * Lz;
+        }    
         return;
 }
 
@@ -183,8 +186,7 @@ real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min, real8 max)
     real8   x0, y0, x1, y1, t, boundVal;
     int     i;    
 
-    if(curve.ax.size()<2)
-        Fatal("there is no enough data for interpolation (%d)", (int)curve.ax.size());
+    if(curve.ax.size()<2)return 0.0;
     if(curve.ax[0] == curve.ax.back())
         Fatal("the range of line is zero in LineInterpolation");
 
@@ -294,9 +296,7 @@ void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID)
 {
     int         i, j, startID = 0;
 
-
-    vector<string>().swap(table.variables);
-    vector<vector<double> >().swap(table.data);
+    InitTable(table);
 
     table.variables.resize(tables[0].variables.size());
     for(i=0; i<tables[0].variables.size(); i++){
@@ -328,6 +328,7 @@ void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID)
         }
     }
 
+    table.i = (int)table.data.size();
     return;            
 }
 
@@ -344,10 +345,6 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
 
     if((index = GetValID(inArgs->priVars, noBackupName)) < inArgs->priVars.size()){
         backup = 0;
-    }
-    if(backup){
-        printf("Backup: Yes.\n");
-    }else{
         printf("Backup: NO! (nobackup)\n");
     }
 
@@ -365,6 +362,7 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
             backupFile = inArgs->inpFiles[i] + sufBack;
             WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
         }
+        printf("tables[i] %d\n",(int)tables[i].data.size());
         SpecifyEquations(tables[i]);
     
         WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
@@ -405,6 +403,18 @@ void InitTable(Table_t &table){
     return;
 }
 
+bool cmp(vector<double> &p, vector<double> &q)
+{
+    return p[0]<q[0];
+}
+void SortTable(Table_t &table, int sortColID)
+{
+    swap(table.variables[0], table.variables[sortColID]);
+    for(auto &a : table.data){
+        swap(a[0],a[sortColID]);
+    }
+    sort(table.data.begin(), table.data.end(),cmp);
+}
 bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
 {
     if(nums < 3)return 0;

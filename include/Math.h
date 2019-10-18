@@ -36,8 +36,8 @@
 #define POINT_INTERSECTION  1
 #define LINE_INTERSECTION   2
 #define PLANE_INTERSECTION  3
-#define EPS1 1.0E-3
-#define EPS2 1.0E-1
+#define EPS1 1.0E-4
+#define EPS2 1.0E-11
 
 int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
                            double *vec1, double *vec2);
@@ -52,5 +52,6 @@ void cross(real8 a[3], real8 b[3], real8 c[3]);
 real8 Normal(real8 a[3]);
 
 void AverageLines(InArgs_t *inArgs);
+int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t);
 
 #endif

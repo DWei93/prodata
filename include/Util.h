@@ -21,10 +21,7 @@
 
 #include "MD.h"
 
-#define DotProduct(vec1,vec2)       \
-            ((vec1[0])*(vec2[0]) +  \
-             (vec1[1])*(vec2[1]) +  \
-             (vec1[2])*(vec2[2]))
+#define DotProduct(vec1,vec2)  ((vec1[0])*(vec2[0])+(vec1[1])*(vec2[1]) +(vec1[2])*(vec2[2]))
 
 #define  NUMBER_DATA    0x0001
 #define  CHAR_DATA      0x0002
@@ -43,8 +40,8 @@ void WashString(string &str);
 int  GetValID(const vector<Var_t> &vals, const string &name);
 int GetColIDFromTable(const Table_t &table, const string &name);
 vector<double>  GenerateSequence(double from, double to, double meshSize);
-void FoldBox(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z);
-void ZImage(real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z);
+void FoldBox(int pbc, real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z);
+void ZImage(int pbc, real8 boundMin[3], real8 boundMax[3], real8 *x, real8 *y, real8 *z);
 real8 LinearInterpolation(const Curve_t &curve, real8 x, real8 min = -1, real8 max = -1);
 void SwapTable(Table_t &table);
 void SwapLineList(LineList_t &list);
@@ -58,5 +55,6 @@ void FormatVector(real8 vec[3], const char *msg);
 
 void InitList(LineList_t &list);
 void InitTable(Table_t &table);
+void SortTable(Table_t &table, int sortColID);
 
 #endif

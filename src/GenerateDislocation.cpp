@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <functional>
+#include <regex>
+#include "math.h"
 
 #include "Home.h"
 #include "Util.h"
@@ -8,31 +10,50 @@
 #include "MD.h"
 #include "Math.h"
 
+
 using namespace std;
 
 void GenerateScrewDislocation(InArgs_t *inArgs)
 {
     int         index, i;    
-    Dump_t    dum;
+    Dump_t      dum;
     string      posName("pos"), lineName("line"), gDirName("gdir"), burgMagName("burgMag");
     string      screwTypeName("stype"), multiDisName("multi");
     int         screwType = 0, nPairs = 0;
     double      rsize = 0, delta;
-
     real8       pos[3] = {0.0, 0.0, 0.0};
     real8       line[3] = {1.0, 0.0, 0.0};
     real8       gDir[3] = {0.0, 1.0, 0.0};
     real8       normal[3];
     real8       burgMag = 2.556, boundMin[3], boundMax[3], argument;
 
+    double      k[3] = {-1,-1,-1};
+    double      shf[3] = {0,0,0};
     if((index = GetValID(inArgs->priVars, posName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 3){
-            pos[0] = atof(inArgs->priVars[index].vals[0].c_str());
-            pos[1] = atof(inArgs->priVars[index].vals[1].c_str());
-            pos[2] = atof(inArgs->priVars[index].vals[2].c_str());
+            char    *token, str[64];
+            printf("The dislocation position (pos) is: ");
+            for(i=0; i<3; i++){
+                snprintf(str, sizeof(str), "%s", inArgs->priVars[index].vals[i].c_str());
+                if(strstr(str, "b") != NULL){
+                    if((token = strtok(str, "b")) != NULL){
+                        k[i] = atof(token);
+                        if((token = strtok(NULL, "b"))!=NULL)shf[i] = atof(token);
+                        printf(" (%f*box,%f) ", k[i], shf[i]);
+                    }
+                }else{
+                    pos[i] = atof(inArgs->priVars[index].vals[i].c_str());
+                    printf(" %f ", pos[i]);
+                }
+            }
+            printf("\n");
         }
+    }else{
+        k[0] = 0.5;
+        k[1] = 0.5;
+        k[2] = 0.5;
+        printf("The dislcoation (pos) is in the center of the box\n");
     }
-    printf("The position of dislocation (pos): {%f, %f, %f}\n", pos[0], pos[1], pos[2]);
 
     if((index = GetValID(inArgs->priVars, lineName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 3){
@@ -90,9 +111,13 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
     for(i=0; i<3; i++){
         boundMin[i] = dum.box[i][0];
         boundMax[i] = dum.box[i][1];
+        if(k[i] != -1){
+            pos[i] = boundMin[i] + k[i]*(boundMax[i]-boundMin[i])+shf[i];
+        }
     } 
 
-    real8  point[3], dvec[3], dis, vec[3], a, b, shift;
+    real8  point[3], dvec[3], dis, vec[3];
+    real8   a, b, shift;
 
     if(nPairs > 0){
     while(nPairs > 0){
@@ -117,16 +142,16 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
             b = DotProduct(vec, normal); 
         
             if(screwType == 0){
-                shift = (0.5*burgMag*atan2(b, a)/M_PI);
+                shift = (0.5*burgMag*std::atan2(b, a)/M_PI);
             }else{
-                shift = (0.5*burgMag*(M_PI + atan2(b, a)/M_PI));
+                shift = (0.5*burgMag*(M_PI + std::atan2(b, a)/M_PI));
             }
         
             dum.atom[i].x += (shift*line[0]);
             dum.atom[i].y += (shift*line[1]);
             dum.atom[i].z += (shift*line[2]);
         
-            FoldBox(boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
+            FoldBox(7, boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
         }
 
         printf("pair %d: burgMag %f, position {%f,%f,%f}, rsize %f\n", nPairs, burgMag, pos[0], pos[1], pos[2], rsize);
@@ -141,7 +166,7 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
     }    
     }else{
         for(i=0; i<dum.atom.size(); i++){
-            FoldBox(boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
+            FoldBox(7, boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
         }
     }
 
@@ -156,21 +181,70 @@ void GenerateScrewDislocation(InArgs_t *inArgs)
 
 void GenerateExtendedDislocation(InArgs_t *inArgs)
 {
-    int     index, nDiss, i;
+    int     index, i;
     string  posName("pos"), lineName("line"), separationName("separation"), gDirName("gdir");
-    string  burgName("burg");
+    string  burgName("burg"), pbcName("bound"), debugName("debug");
     real8   boundMax[3], boundMin[3], pos[3];
     real8   line[3] = {1,0,0}, separation = 10.0, gDir[3] = {0,1,0}, normal[3];
-    vector<vector<real8> > burgList, posList;
+    vector<vector<real8> > burgList(2), posList(2);
+    int     pbc = 0;
+
+    bool debug=false;
+    double      k[3] = {-1,-1,-1};
+    double      shf[3] = {0,0,0};
+    double  mfactor = 10;
+    if((index = GetValID(inArgs->priVars, debugName)) < inArgs->priVars.size()){
+        debug = true;
+        if(inArgs->priVars[index].vals.size() == 1){
+            mfactor = atof(inArgs->priVars[index].vals[0].c_str());
+        }
+        printf("Debug Model on, ampplification %f times\n", mfactor);
+    }
 
     if((index = GetValID(inArgs->priVars, posName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 3){
-            pos[0] = atof(inArgs->priVars[index].vals[0].c_str());
-            pos[1] = atof(inArgs->priVars[index].vals[1].c_str());
-            pos[2] = atof(inArgs->priVars[index].vals[2].c_str());
+            char    *token, str[64];
+            printf("The first dislocation position (pos) is: ");
+            for(i=0; i<3; i++){
+                snprintf(str, sizeof(str), "%s", inArgs->priVars[index].vals[i].c_str());
+                if(strstr(str, "b") != NULL){
+                    if((token = strtok(str, "b")) != NULL){
+                        k[i] = atof(token);
+                        if((token = strtok(NULL, "b"))!=NULL)shf[i] = atof(token);
+                        printf(" (%f*box,%f) ", k[i], shf[i]);
+                    }
+                }else{
+                    pos[i] = atof(inArgs->priVars[index].vals[i].c_str());
+                    printf(" %f ", pos[i]);
+                }
+            }
+            printf("\n");
         }
+    }else{
+        k[0] = 0.5;
+        k[1] = 0.5;
+        k[2] = 0.5;
+        printf("The first dislcoation (pos) is in the center of the box\n");
     }
-    printf("The drag dislocation position (pos): {%f, %f, %f}\n", pos[0], pos[1], pos[2]);
+
+    printf("Reading atoms file %s ...\n", inArgs->inpFiles[0].c_str());
+
+    Dump_t    dum;
+    if(strstr(inArgs->inpFiles[0].c_str(), ".lmp") != NULL){
+        ReadLMPFile(inArgs->inpFiles[0], dum);
+    }else{
+        ReadDumpFile(inArgs->inpFiles[0], dum);
+    }
+
+    for(i=0; i<3; i++){
+        boundMin[i] = dum.box[i][0];
+        boundMax[i] = dum.box[i][1];
+        if(k[i] != -1){
+            pos[i] = boundMin[i] + k[i]*(boundMax[i]-boundMin[i])+shf[i];
+        }
+    } 
+    printf("%d atoms have been read\n", (int)dum.atom.size());
+    printf("The centor of extended is {%f,%f,%f}\n", pos[0], pos[1], pos[2]);
 
     if((index = GetValID(inArgs->priVars, separationName)) < inArgs->priVars.size()){
         separation = atof(inArgs->priVars[index].vals[0].c_str());
@@ -195,26 +269,21 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         }
         NormalizeVec(gDir);
     }
-    printf("The glide direction of dislocation (gDir): {%f, %f, %f}\n", gDir[0], gDir[1], gDir[2]);
+    printf("The glide direction of dislocation (gdir): {%f, %f, %f}\n", gDir[0], gDir[1], gDir[2]);
 
     if((index = GetValID(inArgs->priVars, burgName)) < inArgs->priVars.size()){
 
-        nDiss = (int)(inArgs->priVars[index].vals.size());
-        nDiss /= 3;
-        burgList.resize(nDiss);
-        posList.resize(nDiss);
-
-        printf("%d dislocations: \n", nDiss);
-        for(i=0; i<burgList.size(); i++){
+        printf("two partial dislocations: \n");
+        for(i=0; i<2; i++){
             burgList[i].resize(3);
             posList[i].resize(3);
             burgList[i][0] = atof(inArgs->priVars[index].vals[3*i].c_str());
             burgList[i][1] = atof(inArgs->priVars[index].vals[3*i+1].c_str());
             burgList[i][2] = atof(inArgs->priVars[index].vals[3*i+2].c_str());
 
-            posList[i][0] = pos[0] + 2*gDir[0]*separation*((real8)i);
-            posList[i][1] = pos[1] + 2*gDir[1]*separation*((real8)i);
-            posList[i][2] = pos[2] + 2*gDir[2]*separation*((real8)i);
+            posList[i][0] = pos[0] + gDir[0]*separation*((real8)i-0.5);
+            posList[i][1] = pos[1] + gDir[1]*separation*((real8)i-0.5);
+            posList[i][2] = pos[2] + gDir[2]*separation*((real8)i-0.5);
             
             printf("%d: position {%f,%f,%f}, burg {%f,%f,%f}\n", i, posList[i][0], posList[i][1], posList[i][2],
                     burgList[i][0], burgList[i][1], burgList[i][2]);
@@ -223,21 +292,27 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         Fatal("use -dburg to define dislocation lists");
     }
 
-    if(inArgs->help)return;
-    printf("Reading atoms file %s ...\n", inArgs->inpFiles[0].c_str());
+    if((index = GetValID(inArgs->priVars, pbcName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size() != 1){
+            pbc = 7;
+        }else{
+            pbc = atof(inArgs->priVars[index].vals[0].c_str());    
+        }
+        printf("Boundary type (bound): ");
+        if((pbc & 0x01) > 0)printf("p ");
+        else printf("s ");
 
-    Dump_t    dum;
-    if(strstr(inArgs->inpFiles[0].c_str(), ".lmp") != NULL){
-        ReadLMPFile(inArgs->inpFiles[0], dum);
+        if((pbc & 0x02) > 0)printf("p ");
+        else printf("s ");
+
+        if((pbc & 0x04) > 0)printf("p\n");
+        else printf("s\n");
+
     }else{
-        ReadDumpFile(inArgs->inpFiles[0], dum);
+        printf("Boundary type (bound): free surfaces along 3 dimensions have been applied\n");
     }
 
-    for(i=0; i<3; i++){
-        boundMin[i] = dum.box[i][0];
-        boundMax[i] = dum.box[i][1];
-    } 
-    printf("%d atoms have been read\n", (int)dum.atom.size());
+    if(inArgs->help)return;
 
     if(fabs(DotProduct(line, gDir)) > 1.0E-2){
         Fatal("glide direction should be perpendicular to line direction.");
@@ -254,12 +329,14 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
 #pragma omp parallel for shared(dum) private (j,point,vec,vec1,vec2,dis1,dis2,displace,a,b, angle)
     for(i=0; i<dum.atom.size(); i++){
 
-        point[0] = dum.atom[i].x;
-        point[1] = dum.atom[i].y;
-        point[2] = dum.atom[i].z;
+        point[0] = dum.atom[i].x; if((pbc & 0x01) > 0)point[0] -= pos[0];
+        point[1] = dum.atom[i].y; if((pbc & 0x02) > 0)point[1] -= pos[1];
+        point[2] = dum.atom[i].z; if((pbc & 0x04) > 0)point[2] -= pos[2];
         
-        for(j=0; j<nDiss; j++){
-            VECTOR_COPY(vec, posList[j]);
+        for(j=0; j<2; j++){
+            vec[0] = posList[j][0]; if((pbc & 0x01) > 0)vec[0] -= pos[0];
+            vec[1] = posList[j][1]; if((pbc & 0x02) > 0)vec[1] -= pos[1];
+            vec[2] = posList[j][2]; if((pbc & 0x04) > 0)vec[2] -= pos[2];
 
             PointLineIntersection(point, line, vec, vec1, &dis1);
             vec1[0] = point[0] - vec1[0];
@@ -271,7 +348,7 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
             a = DotProduct(vec1, gDir);
             b = DotProduct(vec1, normal); 
 
-            angle = atan2(b, a)/M_PI;
+            angle = std::atan2(b, a)/M_PI;
 
 //            if(angle < 0)angle += 1;
 //            angle /= 2.0;
@@ -281,14 +358,30 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
                 displace = 0;
                 printf("nan: %f %f %f %f %f\n", a, b, angle, dis1, DisDisPlacement(dis1));
             }
+            if(debug)displace *= mfactor;
             dum.atom[i].x += burgList[j][0]*displace;
             dum.atom[i].y += burgList[j][1]*displace;
             dum.atom[i].z += burgList[j][2]*displace;
             
         }
-//        FoldBox(boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
+        if(!debug)FoldBox(pbc, boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
     }
-    
+
+    for(i=0; i<2; i++){
+        if((pbc & 0x01) == 0){
+            dum.box[0][0] -= (burgList[i][0]/2.0);
+            dum.box[0][1] += (burgList[i][0]/2.0);
+        }
+        if((pbc & 0x02) == 0){
+            dum.box[1][0] -= (burgList[i][1]/2.0);
+            dum.box[1][1] += (burgList[i][1]/2.0);
+        }
+        if((pbc & 0x04) == 0){
+            dum.box[2][0] -= (burgList[i][2]/2.0);
+            dum.box[2][1] += (burgList[i][2]/2.0);
+        }
+    }
+
     MGToLMPDataFile(inArgs->outFiles[0], dum);
 
     if(inArgs->outFiles.size() == 2){
@@ -310,11 +403,11 @@ void GenerateDislocation(InArgs_t *inArgs){
 
     switch(type){
         case 0:
-            GenerateScrewDislocation(inArgs);
+            GenerateExtendedDislocation(inArgs);
             break;
 
         case 1:
-            GenerateExtendedDislocation(inArgs);
+            GenerateScrewDislocation(inArgs);
             break;
 
         default:

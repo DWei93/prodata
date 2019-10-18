@@ -10,12 +10,12 @@
 using namespace std;
 
 
-bool cmp(Point_t p, Point_t q)
+bool cmp(Point_t &p, Point_t &q)
 {
     return(p.x < q.x);
 }
 
-bool cmpvec(vector<double> p, vector<double> q)
+bool cmpvec(vector<double> &p, vector<double> &q)
 {
     return(p[1] < q[1]);
 }
@@ -47,6 +47,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 
     vec.resize(12);
 
+    InitList(list);
     list.variables.push_back("x");
     list.variables.push_back("y1");
     list.variables.push_back("y2");
@@ -99,11 +100,13 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
             ReadTecplotNormalData(inArgs->auxFiles[file], auxTables[file], secLine);
         }
         StitchTecplotData(auxTables, auxTable, 0);
+        printf("auxTable size %d\n", (int)auxTable.data.size());
         if(auxTable.data.size() == 0){
             Fatal("the aux table size is zero.");
         }
 
         logFile = 1;
+        auxTable.i=int(auxTable.data.size());
         WriteTecplotNormalData(auxTable, auxFile, 10);
     }
     if(inArgs->help)return;
@@ -128,13 +131,6 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 
         if(!ReadTecplotNormalData(inArgs->inpFiles[file], table, secLine))continue;
 
-        vector<string>().swap(words);
-        words = split(secLine, "\"");
-
-        if(words.size() == 0){
-            Fatal("can not find the timesolution in file %s", inArgs->inpFiles[file].c_str());
-        }
- 
         if(table.data.size() < 2)Fatal("the data size is %d", table.data.size());
  
         colX = GetColIDFromTable(table, "X");
@@ -159,7 +155,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
             }
         }
 
-        if(points1.size() == 0 || points2.size() == 0)continue;
+//        if(points1.size() == 0 || points2.size() == 0)continue;
  
         sort(points1.begin(), points1.end(), cmp); 
         sort(points2.begin(), points2.end(), cmp); 
@@ -211,7 +207,8 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         position2 = 0.0;
         for(i=0; i<seq.size(); i++){
             data[1][i] = LinearInterpolation(curve1, seq[i], boundMin[0], boundMax[0]);
-            data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
+            if(curve2.ax.size()<2) data[2][i]=data[1][i];
+            else data[2][i] = LinearInterpolation(curve2, seq[i], boundMin[0], boundMax[0]);
             data[3][i] = 0.5*(data[1][i] + data[2][i]);
             if(i<seq.size()-1){
                 position1 += data[1][i];
@@ -308,10 +305,16 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
         fileName += "-";
         fileName += fname;
 
+        list.i=list.data[0].size();
         WriteTecplotNormalData(list, fileName, 10);
         vector<vector<double> >().swap(list.data);
 
+        vector<string>().swap(words);
+        words = split(secLine, "\"");
+
         timenow = atof(words[1].c_str());
+//      printf("T %s\n",table.T.c_str());
+//      timenow = atof(table.T.c_str());
 
         vec[0] = (real8)file;
         vec[1] = timenow;
@@ -371,7 +374,7 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
             }
         }
         
-        ZImage(boundMin, boundMax, disp, disp+1, disp+2);
+        ZImage(7, boundMin, boundMax, disp, disp+1, disp+2);
         outs[i][6] = disp[1];
         outs[i][7] = disp[1]/dt;
 
@@ -386,14 +389,15 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
 
 typedef struct {
     real8               x,y,z;
+    real8               width,scatter;
     vector<Atom_t *>    nbr;
 }Probe_t;
 
 typedef struct {
     long int timestep;
     double x,y,z;
-    double absy;
-    double vy;
+    double absy, absz;
+    double vy,vz;
     double separation;
     vector<double> vars;
 }EDState_t;
@@ -426,7 +430,7 @@ bool com4(Probe_t p, Probe_t q)
 void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 {
     int         i, j, file, index, firstNbr, indexVar;
-    int         nums[2] = {18, 24}, logfile;
+    int         nums[2] = {18, 24}, logfile=0;
     int         stepID;
     double      cutofflen = 2.556, alpha = 0.1, beta = 1.0;
     double      position[3];
@@ -434,16 +438,32 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
     LineList_t  list;
     double      dir[3] = {0, 1, 0}, p0[3], dval=5, effeSepRange[2] = {1.0,40.0}; 
     bool        noP0 = 1;
-    string      paraName("para"), dvarName("dvar"), dvar("c_vcna"), p0Name("p0"), dirName("dir");
-    string      numsName("nums"), ppstring("pp"), separationName("separation");
+    string      paraName("para"), dvarName("dvar"), dvar("c_cna"), p0Name("p0"), dirName("dir"), rangeName("range");
+    string      numsName("nums"), ppstring("pp"), separationName("separation"), auxName("auxiliary"), marginName("margin");
     int     lastIndex = 0;
-    double  dis, minDis;
+    double  dis, minDis, margin_x=5, margin_y=5, margin_z, range[2]={0,1};
 
     vector<Atom_t>::iterator     it; 
     vector<EDState_t>   states;
 
-    ofstream out;
-    out.open(inArgs->outFiles[0].c_str(), ios::out);
+    Table_t table; InitTable(table);
+
+    if((index = GetValID(inArgs->priVars, auxName)) < inArgs->priVars.size()){
+        int numV = inArgs->priVars[index].vals.size()/2;
+        for(i=0; i<numV; i++)table.aux[inArgs->priVars[index].vals[2*i]] = inArgs->priVars[index].vals[2*i+1];
+    }
+    if((index = GetValID(inArgs->priVars, marginName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size()==1){
+            margin_x = atof(inArgs->priVars[index].vals[0].c_str());
+            margin_y = atof(inArgs->priVars[index].vals[0].c_str());
+            margin_z = atof(inArgs->priVars[index].vals[0].c_str());
+        }else if(inArgs->priVars[index].vals.size() ==3){
+            margin_x = atof(inArgs->priVars[index].vals[0].c_str());
+            margin_y = atof(inArgs->priVars[index].vals[1].c_str());
+            margin_z = atof(inArgs->priVars[index].vals[2].c_str());
+        }
+    }
+    printf("margin (%f,%f,%f)\n", margin_x, margin_y, margin_z);
 
     if((index = GetValID(inArgs->priVars, paraName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 2){
@@ -499,21 +519,39 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
     }
     printf("The range of effective separtion of the extended dislocation (separation) is [%f,%f]\n", effeSepRange[0], effeSepRange[1]);
 
+    if((index = GetValID(inArgs->priVars, rangeName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals.size() == 2){
+            range[0] = atof(inArgs->priVars[index].vals[0].c_str());
+            range[1] = atof(inArgs->priVars[index].vals[1].c_str());
+        }
+    }
+    printf("The determined var (dvar) is %s, value is %f\n", dvar.c_str(), dval);
+
+    if(inArgs->auxFiles.size()>0){
+        logfile = ReadDataFromMDLogFile(inArgs->auxFiles, list);
+        list.i=(int)list.data[0].size();
+        if(inArgs->outFiles.size()>1)WriteTecplotNormalData(list, inArgs->outFiles[1], 10);
+    }
     if(inArgs->help)return;
-    logfile = ReadDataFromMDLogFile(inArgs->auxFiles, list);
 
     states.resize(inArgs->inpFiles.size());
     for(file=0; file<inArgs->inpFiles.size(); file++){
         states[file].timestep = 1E10;
     }
 
-#pragma omp parallel for private(dum, it, i, j, indexVar, firstNbr, lastIndex, dis, minDis) shared(states) 
+    double boundMin[3], boundMax[3];
+#pragma omp parallel for private(dum, it, i, j, indexVar, firstNbr, lastIndex, dis, minDis, boundMin, boundMax) shared(states) 
     for(file=0; file<inArgs->inpFiles.size(); file++){
+        double separation, path[3];
         #pragma omp critical
         {
             ReadDumpFile(inArgs->inpFiles[file], dum);
         }
 
+        for(i=0; i<3; i++){
+            boundMin[i] = dum.box[i][0];
+            boundMax[i] = dum.box[i][1];
+        }
         for(i=0; i<dum.variables.size(); i++){
             if(dvar == dum.variables[i])break;
         }
@@ -523,12 +561,12 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         }
         
         for(i=0; i<dum.atom.size(); ){
-            if(dum.atom[i].x < dum.box[0][0] + 5 ||
-               dum.atom[i].y < dum.box[1][0] + 5 ||
-               dum.atom[i].z < dum.box[2][0] + 5 ||
-               dum.atom[i].x > dum.box[0][1] - 5 ||
-               dum.atom[i].y > dum.box[1][1] - 5 ||
-               dum.atom[i].z > dum.box[2][1] - 5){
+            if(dum.atom[i].x < dum.box[0][0] + margin_x ||
+               dum.atom[i].y < dum.box[1][0] + margin_y ||
+               dum.atom[i].z < dum.box[2][0] + margin_z ||
+               dum.atom[i].x > dum.box[0][1] - margin_x ||
+               dum.atom[i].y > dum.box[1][1] - margin_y ||
+               dum.atom[i].z > dum.box[2][1] - margin_z){
                 dum.atom.erase(dum.atom.begin()+i);
                 continue;
             }
@@ -536,7 +574,6 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                 dum.atom.erase(dum.atom.begin()+i);
                 continue;
             }
-
 
             i++;
         }
@@ -554,7 +591,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         vector<Probe_t> probes;
         Probe_t         probe;
 
-        probe.y = dum.atom[0].y;
+        probe.y = p0[1];
         probe.z = p0[2];
 
         lastIndex = 0;  
@@ -564,8 +601,12 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
             firstNbr = 1;
             minDis = 1E10;
             for(i=lastIndex; i<dum.atom.size(); i++){
-                dis = sqrt(pow((dum.atom[i].y-probe.y), 2) +
-                      pow((dum.atom[i].z-probe.z), 2) );
+                path[0] = 0;
+                path[1] = dum.atom[i].y-probe.y;
+                path[2] = dum.atom[i].z-probe.z;
+                ZImage(7, boundMin, boundMax, path, path+1, path+2);
+                dis = sqrt(path[0]*path[0]+path[1]*path[1]+path[2]*path[2]);
+
                 if(dis < minDis){
                     minDis = dis;
                 }
@@ -582,7 +623,6 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                 probes.push_back(probe);
                 vector<Atom_t *>().swap(probe.nbr);
             }
-            if(probe.y > dum.atom.back().y)break;
 
             if(minDis < alpha){
                 probe.x += (dir[0]*alpha);
@@ -593,36 +633,75 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                 probe.y += (dir[1]*minDis);
                 probe.z += (dir[2]*minDis);
             }
+            if(probe.y > dum.atom.back().y+alpha)break;
+            FoldBox(7, boundMin, boundMax, &(probe.x), &(probe.y), &(probe.z));
         }
 
         for(i=0; i<probes.size(); i++){
-            probes[i].x = 0.0;
-            probes[i].y = 0.0;
-            probes[i].z = 0.0;
+            double bakPos[3] = {probes[i].x,probes[i].y,probes[i].z};
+            probes[i].x=0;  probes[i].y=0;  probes[i].z=0;
             for(j=0; j<probes[i].nbr.size(); j++){
-                probes[i].x += probes[i].nbr[j]->x;
-                probes[i].y += probes[i].nbr[j]->y;
-                probes[i].z += probes[i].nbr[j]->z;
+                path[0] = probes[i].nbr[j]->x - bakPos[0];
+                path[1] = probes[i].nbr[j]->y - bakPos[1];
+                path[2] = probes[i].nbr[j]->z - bakPos[2];
+                ZImage(7, boundMin, boundMax, path, path+1, path+2);
+                probes[i].x += path[0]; probes[i].y += path[1]; probes[i].z += path[2];
             }
             probes[i].x /= (double)probes[i].nbr.size();
             probes[i].y /= (double)probes[i].nbr.size();
             probes[i].z /= (double)probes[i].nbr.size();
+            probes[i].x += bakPos[0]; probes[i].y += bakPos[1]; probes[i].z += bakPos[2];
+            FoldBox(7, boundMin, boundMax, &(probes[i].x), &(probes[i].y), &(probes[i].z));
 
+            probes[i].width=0;
+            for(j=0; j<probes[i].nbr.size(); j++){
+                path[0] = probes[i].nbr[j]->x - probes[i].x;
+                path[1] = probes[i].nbr[j]->y - probes[i].y;
+                path[2] = probes[i].nbr[j]->z - probes[i].z;
+
+                ZImage(7, boundMin, boundMax, path, path+1, path+2);
+                probes[i].width += sqrt(path[1]*path[1]+path[2]*path[2]);
+            }
+            probes[i].width /= double(probes[i].nbr.size());
+
+            probes[i].scatter = 0;
+            for(j=0; j<probes[i].nbr.size(); j++){
+                path[0] = probes[i].nbr[j]->x - probes[i].x;
+                path[1] = probes[i].nbr[j]->y - probes[i].y;
+                path[2] = probes[i].nbr[j]->z - probes[i].z;
+                ZImage(7, boundMin, boundMax, path, path+1, path+2);
+                probes[i].scatter += pow(probes[i].width-sqrt(path[1]*path[1]+path[2]*path[2]),2);
+            }
+            probes[i].scatter = sqrt(probes[i].scatter)/double(probes[i].nbr.size());
         }
-
-        double separation = 0;
+        
+        separation = 0;
 
         if(probes.size() > 0){
-            separation = fabs(probes[0].y-probes.back().y);
+            
+            printf("File %s: ", inArgs->inpFiles[file].c_str());
+            path[0] = probes.back().x-probes[0].x;
+            path[1] = probes.back().y-probes[0].y;
+            path[2] = probes.back().z-probes[0].z;
+            ZImage(7, boundMin, boundMax, path, path+1, path+2);
+            separation = sqrt(path[0]*path[0]+path[1]*path[1]+path[2]*path[2]);
             if(effeSepRange[0] > 0 && effeSepRange[1] >0 ){
                  sort(probes.begin(), probes.end(), com2);
                 if(separation >  effeSepRange[0] && separation <  effeSepRange[1] ){
-                    states[file].x = (probes[0].x+probes.back().x)*0.5;
-                    states[file].y = (probes[0].y+probes.back().y)*0.5;
-                    states[file].z = (probes[0].z+probes.back().z)*0.5;
+                    states[file].x = probes[0].x + path[0]*0.5;
+                    states[file].y = probes[0].y + path[1]*0.5;
+                    states[file].z = probes[0].z + path[2]*0.5;
+                    FoldBox(7, boundMin, boundMax, &(states[file].x), &(states[file].y), &(states[file].z));
                     states[file].timestep = dum.timestep;
                     states[file].separation = separation;
-
+                    
+                    path[0] =0;
+                    NormalizeVec(path);
+                    printf("(%f,%f,#%d,%f,%f)--%f--LD(0,%f,%f)-->(%f,%f,#%d,%f,%f)\n", probes[0].y,probes[0].z,int(probes[0].nbr.size()),probes[0].width,
+                            probes[0].scatter, separation,
+                            path[1], path[2],
+                            probes.back().y,probes.back().z,int(probes.back().nbr.size()), probes.back().width,probes.back().scatter);
+ 
                     if(logfile ==1){
                         states[file].vars.resize(list.variables.size()-1);
                         for(i=0; i<list.data[0].size(); i++){
@@ -632,7 +711,9 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                             states[file].vars[j] = list.data[j+1][i];
                         }
                     }
-                }
+                }else printf("%d probes, 1: #%d width %f, scatter %f; 2: #%d width %f, scatter %f, separation %f, Skip!\n",
+                            int(probes.size()),int(probes[0].nbr.size()),probes[0].width,probes[0].scatter,
+                                           int(probes.back().nbr.size()),probes.back().width, probes.back().scatter, separation);
             }else{
                 sort(probes.begin(), probes.end(), com4);
                 
@@ -641,7 +722,6 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                 states[file].z = probes[0].z;
                 states[file].timestep = dum.timestep;
                 states[file].separation = 0;
-                printf("file %d, nbrsize %d, timestep %d %f\n",file, (int)probes[0].nbr.size(), (int)states[file].timestep, states[file].y);
                 if(logfile ==1){
                     states[file].vars.resize(list.variables.size()-1);
                     for(i=0; i<list.data[0].size(); i++){
@@ -651,7 +731,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
                         states[file].vars[j] = list.data[j+1][i];
                     }
                 }
-
+                printf("(%f,%f,#%d,%f,%f)\n", probes[0].y,probes[0].z,int(probes[0].nbr.size()),probes[0].width, probes[0].scatter);
             }
         }
         
@@ -659,46 +739,88 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
 
     sort(states.begin(), states.end(), com3);
 
-    out << "variables = timestep, separation, y, absy, vy";
+    table.variables.push_back("timestep");
+    table.variables.push_back("separation");
+    table.variables.push_back("y");
+    table.variables.push_back("absy");
+    table.variables.push_back("vy");
+    table.variables.push_back("z");
+    table.variables.push_back("absz");
+    table.variables.push_back("vz");
     if(logfile == 1){
         for(i=1; i<list.variables.size(); i++){
-            out << ", " << list.variables[i];
+            table.variables.push_back(list.variables[i]);
         }
     }
-    out << endl;
 
     real8    lastAbsy, vy, lasty, lastTimestep;
+    real8    lastAbsz, vz, lastz;
     ReadDumpFile(inArgs->inpFiles[0], dum);
-    real8    ybox = dum.box[1][1];
-    printf("effective states %d, boxy is %f\n", (int)states.size(), dum.box[1][1]);
+    real8    ybox = dum.box[1][1]-dum.box[1][0], zbox = dum.box[2][1] -dum.box[2][0];
+    if(states.size()==0)Fatal("can not find any dislocation");
+    int initStep = states[0].timestep;
     for(i=0; i<states.size(); i++){
-        if(states[i].timestep > 1E9)break;
-        
-        lastAbsy = ((i==0) ? states[i].y : states[i-1].absy);
-        lasty = ((i==0) ? states[i].y : states[i-1].y);
-        lastTimestep = ((i==0) ? states[i].timestep : states[i-1].timestep);
-        out << states[i].timestep << " ";
-        out << states[i].separation << " ";
-        out << states[i].y  << " ";
+        if(states[i].timestep > 1E9)break;}
+    table.data.resize(i);
 
+    printf("effective states %d, boxy is %f x %f\n", (int)table.data.size(), ybox, zbox);
+    for(i=0; i<table.data.size(); i++){
+        j=0;
+        states[i].timestep -= initStep;
+        table.data[i].resize(table.variables.size());
+        lastAbsy = ((i==0) ? states[i].y : states[i-1].absy);
+        lastAbsz = ((i==0) ? states[i].z : states[i-1].absz);
+
+        lasty = ((i==0) ? states[i].y : states[i-1].y);
+        lastz = ((i==0) ? states[i].z : states[i-1].z);
+
+        lastTimestep = ((i==0) ? states[i].timestep : states[i-1].timestep);
+
+        table.data[i][j++] = states[i].timestep;
+        table.data[i][j++] = states[i].separation;
+
+        table.data[i][j++] = states[i].y;
         vy = states[i].y - lasty;
         vy -= rint(vy * 1.0/ybox) * ybox;
         states[i].absy = lastAbsy+vy;
-        out << states[i].absy  << " ";
-
+        table.data[i][j++] =  states[i].absy;
         states[i].vy = ((i==0) ? 0 : (vy)/(states[i].timestep - lastTimestep));
-        out << states[i].vy  << " ";
+        table.data[i][j++] = states[i].vy;
 
-        for(j=0; j< states[i].vars.size(); j++){
-            out << setprecision(10) << states[i].vars[j] << " "; 
+        table.data[i][j++] = states[i].z;
+        vz = states[i].z - lastz;
+        vz -= rint(vz * 1.0/zbox) * zbox;
+        states[i].absz = lastAbsz+vz;
+        table.data[i][j++] =  states[i].absz;
+        states[i].vz = ((i==0) ? 0 : (vz)/(states[i].timestep - lastTimestep));
+        table.data[i][j++] = states[i].vz;
+
+        for(auto k=0; k<states[i].vars.size(); k++){
+            table.data[i][j+k] = states[i].vars[k];
         }
-        out << endl;
-
-//        printf("%d %f %f %d\n", states[i].timestep, states[i].separation, 
-//                states[i].y, ((int)(states[i].vars.size())));
     }
 
-    out.close();
+
+    int initial=int(double(table.data.size())*range[0]-1); if(initial < 0)initial=0;
+    int last=int(double(table.data.size())*range[1]-1); if(last >= table.data.size())last= int(table.data.size())-1;
+    double velocity_y = (states[last].absy-states[initial].absy)/(states[last].timestep-states[initial].timestep);
+    double velocity_z = (states[last].absz-states[initial].absz)/(states[last].timestep-states[initial].timestep);
+
+    char val[50];
+    snprintf(val, sizeof(val), "%e", sqrt(velocity_z*velocity_z+velocity_y*velocity_y));
+    table.aux[std::string("velocity")] = val;
+
+    double width=0;
+    for(i=initial; i<last+1; i++){
+        width += states[i].separation;
+    }  
+    width /= double(last+1-initial);
+    snprintf(val, sizeof(val), "%e", width);
+    table.aux[std::string("separation")] = val;
+    table.i=int(table.data.size());
+
+    WriteTecplotNormalData(table,  inArgs->outFiles[0], 10);
+ 
     return;
 }
 

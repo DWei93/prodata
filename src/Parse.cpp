@@ -54,6 +54,7 @@ vector<string> GetFiles(const string &file)
         }
     }
 
+    closedir(dir);
     return(strs);
 }
 
