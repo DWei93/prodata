@@ -49,7 +49,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     std::regex aux_equation("AUXDATA\\s+\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
     std::regex equation("\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
     std::regex var_name("[a-zA-Z]+[a-zA-z0-9_\\-]*");
-    std::regex value("\\S*[a-zA-z0-9_\\.\\+\\-]+");
+    std::regex value("[a-zA-z0-9_\\.\\+\\-]+");
     std::smatch equation_match;
     std::smatch v_match;
 

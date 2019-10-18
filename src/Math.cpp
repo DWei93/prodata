@@ -5,6 +5,7 @@
 #include "ProDataIO.h"
 #include "Parse.h"
 #include "Math.h"
+#include <cstdlib>
 
 using namespace std;
 
@@ -284,8 +285,8 @@ void AverageLines(InArgs_t *inArgs)
 
                 if(rsize == 0){
                     if(seq.size() != curve.ay.size()){
-                        printf("Warning: the %d table has a differnt size (%d) from the basic one (%d)\n",
-                               i, (int)seq.size(), (int)curve.ay.size());
+//                      printf("Warning: the %d table has a differnt size (%d) from the basic one (%d)\n",
+//                             i, (int)seq.size(), (int)curve.ay.size());
                     }
                     for(k=0; k<seq.size(); k++){
                         list.data[j][k] += (curve.ay[k]*weightList[i]/totalWeight);
