@@ -355,6 +355,10 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
     }
 
     tables.resize(inArgs->inpFiles.size());
+    real8 crss;
+    vector<real8> crsses;
+        
+
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
@@ -362,12 +366,53 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
             backupFile = inArgs->inpFiles[i] + sufBack;
             WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
         }
-        printf("tables[i] %d\n",(int)tables[i].data.size());
-        SpecifyEquations(tables[i]);
-    
-        WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
+        if(true==Analysis(tables[i], crss)){
+            crsses.push_back(crss);
+        }
     }
 
+    crss=0;
+    real8 scatter=0;
+    for(i=0;i<crsses.size();i++)crss+=crsses[i];
+    crss /= double(crsses.size());
+    for(i=0;i<crsses.size(); i++)scatter += pow(crsses[i]-crss,2);
+    
+    printf("DATA: %g %g\n",crss,sqrt(scatter)/double(crsses.size()));
+
+    return;
+    vector<vector<real8> > dl;
+    vector<real8> d(6);
+    real8 sigma, twindef, hard;
+    for(i=0; i<inArgs->inpFiles.size(); i++){
+        readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
+        if(!readState)continue;
+        if(backup){
+            backupFile = inArgs->inpFiles[i] + sufBack;
+            WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
+        }
+        if(true==Analysis(tables[i], sigma, hard, twindef)){
+            d[0]=sigma; d[1]=hard; d[2]=twindef; d[3]=0; d[4]=0; d[5]=0;
+            dl.push_back(d);
+        }
+//      SpecifyEquations(tables[i]);
+//  
+//      WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
+    }
+
+    for(int j=0; j<6; j++)d[j]=0; real8 num = double(dl.size());
+    for(int j=0; j<dl.size(); j++){
+        d[0] += (dl[j][0]/num);
+        d[1] += (dl[j][1]/num);
+        d[2] += (dl[j][2]/num);
+    }
+
+    for(int j=0;j<dl.size();j++){
+        d[3]+=pow(dl[j][0]-d[0],2)/num/num;
+        d[4]+=pow(dl[j][1]-d[1],2)/num/num;
+        d[5]+=pow(dl[j][2]-d[2],2)/num/num;
+    }
+
+    printf("DATA: %7.2e %7.2e %7.2e %7.2e %7.2e %7.2e\n",d[0],d[1],d[2],sqrt(d[3]),sqrt(d[4]),sqrt(d[5]));
     return;
 
 }
