@@ -13,8 +13,9 @@ endif(OPENMP_FOUND)
 add_executable(prodata ${SRCS})
 add_definitions( -DPARALLEL=1)
 
-INCLUDE_DIRECTORIES(../include)    
-target_link_libraries(prodata m pthread)
+INCLUDE_DIRECTORIES(../include $ENV{HOME}/LIB/include)
+LINK_DIRECTORIES($ENV{HOME}/LIB/lib)   
+target_link_libraries(prodata m pthread gsl gslcblas)
 Install(TARGETS prodata
         RUNTIME DESTINATION bin)
 

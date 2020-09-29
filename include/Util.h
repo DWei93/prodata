@@ -50,8 +50,9 @@ void NormalizeVec(real8 vec[3]);
 void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID = 0);
 int DataType(const string &str);
 void SpecifyEquations_PLTDATA(InArgs_t *inArgs);
+void HandleTecplotData(InArgs_t *inArgs);
 void SpecifyEquations(Table_t &table);
-bool Analysis(Table_t &table, real8 &sigma, real8 &hard, real8 &twindef);
+bool Analysis(int pointID, Table_t &table, real8 &sigma, real8 &hard, real8 &thard ,real8 &twindef, real8 &crss);
 bool Analysis(Table_t &table, real8 &crss);
 void FormatVector(real8 vec[3], const char *msg);
 
@@ -59,4 +60,6 @@ void InitList(LineList_t &list);
 void InitTable(Table_t &table);
 void SortTable(Table_t &table, int sortColID);
 
+void AnimateAuxData(InArgs_t *inArgs);
+void AnimateCurve(InArgs_t *inArgs);
 #endif

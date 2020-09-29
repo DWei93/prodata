@@ -202,6 +202,7 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         printf("Debug Model on, ampplification %f times\n", mfactor);
     }
 
+   
     if((index = GetValID(inArgs->priVars, posName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 3){
             char    *token, str[64];
@@ -346,6 +347,7 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         }
     }
     
+#if 0
     if((pbc & 0x02) > 0 && fabs(line[1]) <0.98 ){
         numDiss=posList.size();
         nYCells=int(lengthMax*maxCells/l[1]);
@@ -361,7 +363,7 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
             }
         }
     }
-
+#endif
     if((pbc & 0x04) > 0 && fabs(line[2]) <0.98){
         numDiss=posList.size();
         nZCells=int(lengthMax*maxCells/l[2]);
@@ -423,7 +425,7 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         if(!debug)FoldBox(pbc, boundMin, boundMax, &(dum.atom[i].x), &(dum.atom[i].y), &(dum.atom[i].z));
     }
 
-    for(i=0; i<2 && debug; i++){
+    for(i=0; i<2; i++){
         if((pbc & 0x01) == 0){
             dum.box[0][0] -= (burgList[i][0]/2.0);
             dum.box[0][1] += (burgList[i][0]/2.0);

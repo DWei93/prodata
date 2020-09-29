@@ -46,14 +46,15 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     InitTable(table);
     secLine = "";
 
-    std::regex aux_equation("AUXDATA\\s+\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
+//  std::regex aux_equation("AUXDATA\\s+\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
+    std::regex aux_equation("AUXDATA\\s+\\S+\\s*=");
     std::regex equation("\\S+\\s*=\\s*[-\"\'+.a-zA-Z0-9]+");
     std::regex var_name("[a-zA-Z]+[a-zA-z0-9_\\-]*");
     std::regex value("[a-zA-z0-9_\\.\\+\\-]+");
     std::smatch equation_match;
     std::smatch v_match;
 
-    std::string buff0, buff1, buff2;
+    std::string buff0, buff1, buff2, buff3;
 
     Variable_t  auxVar;
 
@@ -85,12 +86,13 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
             buff0 = str;
             if(std::regex_search(buff0, equation_match, aux_equation)){
                 buff1 = equation_match[0].str();
+                buff3 = equation_match.suffix().str();
+//              printf("buf1=%s; buff3=%s\n",buff1.c_str(),buff3.c_str());
                 if(std::regex_search(buff1, v_match, var_name)){
                     buff2 = v_match.suffix().str();
                     if(std::regex_search(buff2, v_match, var_name)){
                         buff1 = v_match[0].str();
-                        buff2 = v_match.suffix().str();
-                        if(std::regex_search(buff2, v_match, value)){
+                        if(std::regex_search(buff3, v_match, value)){
                             table.aux[buff1] = v_match[0].str();
                         }
                     }
@@ -463,4 +465,20 @@ bool ReadLMPFile(const string file, Dump_t &dum)
 
     fclose(fp);
     return 1;
+}
+
+int ModifyDumpFile(const string &file, Dump_t &dum)
+{
+    double tot=double(dum.atom.size()), i=0;
+    for (auto it=dum.atom.begin(); it!=dum.atom.end(); ){
+        i++;
+        if((*it).type==1) {
+            it=dum.atom.erase(it); 
+        } else {
+            ++it;
+        }
+        
+        if(int(i*10000/tot)%100==0)printf("%f\n",i*100/tot);
+    }
+    return 0;    
 }

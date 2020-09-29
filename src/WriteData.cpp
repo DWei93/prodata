@@ -9,7 +9,7 @@
 
 using namespace std;
 
-void WriteTecplotNormalData(const LineList_t &list, const string &file, double precision) 
+void WriteTecplotNormalData(const LineList_t &list, const string &file, double precision, std::_Ios_Openmode ios_base) 
 {
     int     i, j;
     string  fn(file), plt(".plt");
@@ -23,7 +23,7 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
     }
 
     ofstream out;
-    out.open(fn.c_str(), ios::out);
+    out.open(fn.c_str(), ios_base);
 
     out << "variables = "; 
     for(i=0; i<list.variables.size(); i++){
@@ -62,7 +62,7 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
     return;
 }
 
-void WriteTecplotNormalData(const Table_t &table, const string &file, double precision, string secLine) 
+void WriteTecplotNormalData(const Table_t &table, const string &file, double precision, string secLine, std::_Ios_Openmode ios_base) 
 {
     int     i, j;
     string  fn(file), plt(".plt");
@@ -77,7 +77,7 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
     }
 
     ofstream out;
-    out.open(fn.c_str(), ios::out);
+    out.open(fn.c_str(), ios_base);
 
     out << "variables = "; 
     for(i=0; i<table.variables.size(); i++){
@@ -111,7 +111,7 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
     }
      
     out.close();
-//    printf("Finsish writing output file %s\n", fn.c_str());    
+    printf("Finsish writing output file %s\n", fn.c_str());    
     return;
 }
 

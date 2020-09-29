@@ -86,13 +86,13 @@ int  GetValID(const vector<Var_t> &vals, const string &name)
 
 int GetColIDFromTable(const Table_t &table, const string &name)
 {
-    int  i;
+    int  i, j=-1;
     
     for(i=0; i<table.variables.size(); i++){
-        if(name == table.variables[i])break;
-
+        if(name == table.variables[i]){j=i; break;}
     } 
-    return(i);
+
+    return(j);
 }
 
 vector<double>  GenerateSequence(double from, double to, double meshSize)
@@ -333,9 +333,10 @@ void StitchTecplotData(vector<Table_t> &tables, Table_t &table, int eigenID)
 }
 
 
+
 void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
 {
-    int     i, index;
+    int     i, index, pointID=0;
     bool    readState;
     string  secLine, noBackupName = ("nobackup"), backupFile, sufBack = (".bak");
     char    name[256];
@@ -353,12 +354,103 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
     if(inArgs->inpFiles.size() == 0){
         Fatal("There is no input file.");
     }
+    tables.resize(inArgs->inpFiles.size());
+
+    for(i=0; i<inArgs->inpFiles.size(); i++){
+        readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
+        if(!readState)continue;
+        if(backup){
+            backupFile = inArgs->inpFiles[i] + sufBack;
+            WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
+        }
+        
+        SpecifyEquations(tables[i]);
+        WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
+    }
+    return;
+}
+
+
+void AnimateAuxData(InArgs_t *inArgs){
+    int index;
+    string xName=("x"), yName=("y"), x("strain"), y("stress"), secLine, fileName, auxName("plt");
+
+    if((index = GetValID(inArgs->priVars, xName)) < inArgs->priVars.size()){
+        x=inArgs->priVars[index].vals[0];
+    }   
+    if((index = GetValID(inArgs->priVars, yName)) < inArgs->priVars.size()){
+        y=inArgs->priVars[index].vals[0];
+    }   
+
+
+    bool    readState;
+    Table_t auxTable;
+    auxTable.variables.push_back(x.c_str());
+    auxTable.variables.push_back(y.c_str());
+    auxTable.variables.push_back("v1");
+    auxTable.variables.push_back("v2");
+    auxTable.i=1; auxTable.j=1; auxTable.k=1;
+
+    map<string, string>::iterator   iter;
+    vector<double> point(4); point[2]=0; point[3]=0;
+
+    vector<Table_t> tables;
+    tables.resize(inArgs->inpFiles.size());
+    double xlast, ylast;
+    int numData=0;
+    bool first=true;
+    for(int i=0; i<inArgs->inpFiles.size(); i++){
+        readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
+        if(!readState)continue;
+
+        if((iter = tables[i].aux.find(x)) != tables[i].aux.end()){
+                 point[0] = atof(iter->second.c_str());
+        }else Fatal("can not find variable x");
+        if((iter = tables[i].aux.find(y)) != tables[i].aux.end()){
+                 point[1] = atof(iter->second.c_str());
+        }else Fatal("can not find variable x");
+        if(first){numData++; auxTable.data.push_back(point); first=false; xlast=point[0]; ylast=point[1];}
+        else{point[2]=point[0]-xlast; point[3]=point[1]-ylast; xlast=point[0]; ylast=point[1];
+            auxTable.data.push_back(point);
+            numData++;
+        }
+
+        auxTable.T=tables[i].T; auxTable.i = int(auxTable.data.size()); auxTable.F="Point"; auxTable.solutionTime=tables[i].solutionTime;
+        fileName = y + "-" + x + string(auxTable.T) +  auxName;
+        WriteTecplotNormalData(auxTable, fileName,  10, secLine); 
+    }
+}
+
+void HandleTecplotData(InArgs_t *inArgs)
+{
+    int     i, index, pointID=0;
+    bool    readState;
+    string  secLine, noBackupName = ("nobackup"), backupFile, sufBack = (".bak");
+    string  pointIDName=("pointID");
+    char    name[256];
+    bool    backup = 1;
+
+    vector<Table_t> tables;
+
+    if((index = GetValID(inArgs->priVars, noBackupName)) < inArgs->priVars.size()){
+        backup = 0;
+        printf("Backup: NO! (nobackup)\n");
+    }
+
+    if(inArgs->help)return;
+
+    if(inArgs->inpFiles.size() == 0){
+        Fatal("There is no input file.");
+    }
+
+    if((index = GetValID(inArgs->priVars, pointIDName)) < inArgs->priVars.size()){
+    }else index =-1;
 
     tables.resize(inArgs->inpFiles.size());
+#if 0
     real8 crss;
     vector<real8> crsses;
         
-
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
@@ -380,9 +472,10 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
     printf("DATA: %g %g\n",crss,sqrt(scatter)/double(crsses.size()));
 
     return;
+#else
     vector<vector<real8> > dl;
-    vector<real8> d(6);
-    real8 sigma, twindef, hard;
+    vector<real8> d(10);
+    real8 sigma, twindef, hard, thard, crss;
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
@@ -390,31 +483,46 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
             backupFile = inArgs->inpFiles[i] + sufBack;
             WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
         }
-        if(true==Analysis(tables[i], sigma, hard, twindef)){
-            d[0]=sigma; d[1]=hard; d[2]=twindef; d[3]=0; d[4]=0; d[5]=0;
+        
+        if(index>-1 && i/3<inArgs->priVars[index].vals.size())pointID = atoi(inArgs->priVars[index].vals[i/3].c_str());
+        else if (index < 0) pointID=-1;
+        else pointID=atoi(inArgs->priVars[index].vals[0].c_str());
+        
+        if(true==Analysis(pointID,tables[i], sigma, hard, thard, twindef, crss)){
+            d[0]=sigma; d[1]=hard; d[2]=thard; d[3]=twindef; d[4]=0; d[5]=0; d[6]=0; d[7]=0; d[8]=crss; d[9]=0;
             dl.push_back(d);
+        }else{
+            printf("FAIELD: %s \n", inArgs->inpFiles[i].c_str());
         }
 //      SpecifyEquations(tables[i]);
 //  
-//      WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
+        WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
     }
 
-    for(int j=0; j<6; j++)d[j]=0; real8 num = double(dl.size());
+    for(int j=0; j<10; j++)d[j]=0; real8 num = double(dl.size());
     for(int j=0; j<dl.size(); j++){
         d[0] += (dl[j][0]/num);
         d[1] += (dl[j][1]/num);
         d[2] += (dl[j][2]/num);
+        d[3] += (dl[j][3]/num);
+        d[8] += (dl[j][8]/num);
     }
 
-    for(int j=0;j<dl.size();j++){
-        d[3]+=pow(dl[j][0]-d[0],2)/num/num;
-        d[4]+=pow(dl[j][1]-d[1],2)/num/num;
-        d[5]+=pow(dl[j][2]-d[2],2)/num/num;
+    if(num>0){
+        num-=1.0;
+        for(int j=0;j<dl.size();j++){
+            d[4]+=pow(dl[j][0]-d[0],2)/num;
+            d[5]+=pow(dl[j][1]-d[1],2)/num;
+            d[6]+=pow(dl[j][2]-d[2],2)/num;
+            d[7]+=pow(dl[j][3]-d[3],2)/num;
+            d[9]+=pow(dl[j][8]-d[8],2)/num;
+        }
     }
 
-    printf("DATA: %7.2e %7.2e %7.2e %7.2e %7.2e %7.2e\n",d[0],d[1],d[2],sqrt(d[3]),sqrt(d[4]),sqrt(d[5]));
+    printf("DATA: %7.4e %7.4e %7.4e %7.4e %7.4e %7.4e %7.4e %7.4e %7.4e %7.4e\n",
+        d[0],d[1],d[2],d[3],sqrt(d[4]),sqrt(d[5]),sqrt(d[6]),sqrt(d[7]), d[8], sqrt(d[9]));
     return;
-
+#endif
 }
 
 void FormatVector(real8 vec[3], const char *msg){
@@ -470,4 +578,66 @@ bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
 } 
 
 
+
+void AnimateCurve(InArgs_t *inArgs){
+    int index, fps=100,i;
+    string xName=("x"), yName=("y"), x("strain"), y("stress"), nPointsName("fps"), secLine, fileName("aux.plt"), auxName("plt");
+
+    if((index = GetValID(inArgs->priVars, xName)) < inArgs->priVars.size()){
+        x=inArgs->priVars[index].vals[0];
+    }   
+    if((index = GetValID(inArgs->priVars, yName)) < inArgs->priVars.size()){
+        y=inArgs->priVars[index].vals[0];
+    }   
+
+    if((index = GetValID(inArgs->priVars, yName)) < inArgs->priVars.size()){
+        fps=atoi(inArgs->priVars[index].vals[0].c_str());
+    }   
+
+    if(inArgs->outFiles.size()>0)fileName=inArgs->outFiles[0];
+
+    Table_t table;
+    bool    readState;
+    if(inArgs->inpFiles.size() == 0)Fatal("no inpurt file");
+    readState = ReadTecplotNormalData(inArgs->inpFiles[0], table, secLine);
+    if(!readState)Fatal("can not read file %s", inArgs->inpFiles[0].c_str());
+
+    Table_t auxTable;
+    auxTable.variables.resize(table.variables.size()-1); 
+    for(i=0; i<auxTable.variables.size(); i++)auxTable.variables[i]=table.variables[i+1];
+    auxTable.i=1; auxTable.j=1; auxTable.k=1;
+
+    int nPoints =int(table.data.size());
+    if(nPoints<fps)Fatal("fps(%d) > nPoints(%d), please reset fps through -dfps",fps,nPoints);
+
+    int freq=nPoints/fps;
+    bool addLast=false;
+    if((nPoints%fps)!=0){
+        freq = nPoints/(fps-1); addLast=true;
+    }
+
+    vector<double> point(table.variables.size()-1);
+    for(i=0; i<table.data.size(); i++){
+        for (int j=0; j<point.size(); j++){
+            point[j]=table.data[i][j+1];
+        }
+        auxTable.data.push_back(point);
+        if((i%freq)==0){
+            auxTable.solutionTime = table.data[i][0];
+            auxTable.T=to_string(i+1); auxTable.i = i+1; auxTable.F="Point"; 
+            if(i==0){
+                WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::out); 
+            }else{
+                WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::app); 
+            }
+        }
+    }
+
+    if(addLast){
+        auxTable.solutionTime = table.data[i-1][0];
+        auxTable.T=to_string(i); auxTable.i = i; auxTable.F="Point"; 
+        WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::app); 
+    }
+    return;
+}
 

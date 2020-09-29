@@ -546,8 +546,13 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         #pragma omp critical
         {
             ReadDumpFile(inArgs->inpFiles[file], dum);
+            printf("Finish reading %s, %d atoms\n",inArgs->inpFiles[file].c_str(), (int)dum.atom.size());
+            ModifyDumpFile(inArgs->inpFiles[file], dum);
+            printf("After modify %d\n", (int)dum.atom.size());
+            WriteDumpFile(inArgs->outFiles[file], dum); 
         }
 
+            continue;
         for(i=0; i<3; i++){
             boundMin[i] = dum.box[i][0];
             boundMax[i] = dum.box[i][1];

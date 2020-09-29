@@ -368,6 +368,7 @@ int main(int argc, char *argv[])
 
         Fatal("t is %e",t);
 #else
+        
         switch (inArgs.type) {
             case FTYPE_AVERAGE_LINES:
                 AverageLines(&inArgs);
@@ -383,6 +384,14 @@ int main(int argc, char *argv[])
                 break;
             case FTYPE_GENERATE_DISLOCATION:
                 GenerateDislocation(&inArgs);
+                break;
+            case FTYPE_DATA_HANDLING:
+                HandleTecplotData(&inArgs);
+                break;
+            case FTYPE_ANIMATE_AUXDATA:
+                AnimateAuxData(&inArgs);
+            case FTYPE_ANIMATE_CURVE:
+                AnimateCurve(&inArgs);
                 break;
         }
 #endif
