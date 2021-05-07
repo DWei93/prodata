@@ -25,12 +25,14 @@ void WriteTecplotNormalData(const LineList_t &list, const string &file, double p
     ofstream out;
     out.open(fn.c_str(), ios_base);
 
-    out << "variables = "; 
-    for(i=0; i<list.variables.size(); i++){
-        if(i<list.variables.size()-1){
-            out << list.variables[i] << ", ";
-        }else{
-            out << list.variables[i] << endl;
+    if (ios_base == std::ios::out){
+        out << "variables = "; 
+        for(i=0; i<list.variables.size(); i++){
+            if(i<list.variables.size()-1){
+                out << list.variables[i] << ", ";
+            }else{
+                out << list.variables[i] << endl;
+            }
         }
     }
 
@@ -79,12 +81,14 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
     ofstream out;
     out.open(fn.c_str(), ios_base);
 
-    out << "variables = "; 
-    for(i=0; i<table.variables.size(); i++){
-        if(i<table.variables.size()-1){
-            out << table.variables[i] << ", ";
-        }else{
-            out << table.variables[i] << endl;
+    if (ios_base == std::ios::out){
+        out << "variables = "; 
+        for(i=0; i<table.variables.size(); i++){
+            if(i<table.variables.size()-1){
+                out << table.variables[i] << ", ";
+            }else{
+                out << table.variables[i] << endl;
+            }
         }
     }
 
@@ -111,7 +115,7 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
     }
      
     out.close();
-    printf("Finsish writing output file %s\n", fn.c_str());    
+//  printf("Finsish writing output file %s\n", fn.c_str());    
     return;
 }
 

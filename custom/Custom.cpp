@@ -1,7 +1,7 @@
 
 #include "Home.h"
 #include "Util.h"
-#include "ProDataIO.h"
+
 
 void SpecifyEquations1(Table_t &table)
 {
@@ -90,82 +90,17 @@ void SpecifyEquations3(Table_t &table)
         real8   vec[3];
 
         int colBurgID = GetColIDFromTable(table, "burgID");
-        int colPlaneID = GetColIDFromTable(table, "planeID");
-
-        printf("size %d %d: \n", (int)table.data.size(), (int)table.variables.size());
-        
-        table.variables.push_back("bx");
-        table.variables.push_back("by");
-        table.variables.push_back("bz");
-
-        table.variables.push_back("nx");
-        table.variables.push_back("ny");
-        table.variables.push_back("nz");
+        int colIndex = GetColIDFromTable(table, "index");
 
         for(i=0; i<table.data.size(); i++){
             real8 &burgID = table.data[i][colBurgID];
+            real8 &index = table.data[i][colIndex];
 
-            int intBurgID = (int)burgID;
-            switch(intBurgID){
-                case 0:
-                    vec[0] = 0.0; vec[1] = 1.0; vec[2] = 1.0;
-                    break;
-                case 1:    
-                    vec[0] = 0.0; vec[1] = 1.0; vec[2] = -1.0;
-                    break;
-                case 2:
-                    vec[0] = -1.0; vec[1] = 0.0; vec[2] = 1.0;
-                    break;
-                case 3:
-                    vec[0] = 1.0; vec[1] = 0.0; vec[2] = 1.0;
-                    break;
-                case 4:
-                    vec[0] = -1.0; vec[1] = 1.0; vec[2] = 0.0;
-                    break;
-                case 5:
-                    vec[0] = 1.0; vec[1] = 1.0; vec[2] = 0.0;
-                    break;
-                default:
-                    vec[0] = 0.0; vec[1] = 0.0; vec[2] = 0.0;
-                    break;
+            if(index>3.5){
+                index++;
+            }else if (index>2.5){
+                if(burgID > 6.5)index++;
             }
-
-            NormalizeVec(vec);
-            table.data[i].push_back(vec[0]);
-            table.data[i].push_back(vec[1]);
-            table.data[i].push_back(vec[2]);
-            
-
-            real8 &planeID = table.data[i][colPlaneID];
-            int   intPlaneID = (int)planeID;
-            switch(intPlaneID){
-                case -2:
-                    vec[0] = 1.0; vec[1] = 0.0; vec[2] = 0.0;
-                    break;
-                case -1:
-                    vec[0] = 1.0; vec[1] = 1.0; vec[2] = 0.0;
-                    break;
-                case 0:
-                    vec[0] = 1.0; vec[1] = 1.0; vec[2] = 1.0;
-                    break;
-                case 1:
-                    vec[0] = 1.0; vec[1] = 1.0; vec[2] = -1.0;
-                    break;
-                case 2:
-                    vec[0] = -1.0; vec[1] = 1.0; vec[2] = 1.0;
-                    break;
-                case 3:
-                    vec[0] = 1.0; vec[1] = -1.0; vec[2] = 1.0;
-                    break;
-                default:
-                    vec[0] = 0.0; vec[1] = 0.0; vec[2] = 0.0;
-                    break;
-            }
-            NormalizeVec(vec);
-            table.data[i].push_back(vec[0]);
-            table.data[i].push_back(vec[1]);
-            table.data[i].push_back(vec[2]);
-
         }
 
         return;
@@ -432,29 +367,249 @@ void SpecifyEquations10(Table_t &table)
     swap(newTable, table);
     return;
 }
+
+void SpecifyEquations11(Table_t &table)
+{
+    int cIndex = GetColIDFromTable(table, "index"); // units %
+    int cBurgID = GetColIDFromTable(table, "burgID"); // units %
+    int cPlaneID = GetColIDFromTable(table, "normalID"); // units %
+    int cInGrain = GetColIDFromTable(table, "inGrain"); // units %
+    int cOnGB = GetColIDFromTable(table, "onGB"); // units %
+    int ctau_g = GetColIDFromTable(table, "tau_g"); // MPa
+    int cifMag = GetColIDFromTable(table, "ifMag"); // MPa
+    int cconstraint=GetColIDFromTable(table, "constraint");
+    double  tau_g=0.0, ntau_g=0.0, ifMag=0.0, dtau_g=0;
+    for (auto i=0; i<table.data.size(); i++){
+        if((table.data[i][cPlaneID]<3.9 || table.data[i][cPlaneID]>4.1) && table.data[i][cconstraint] <1){tau_g += table.data[i][ctau_g]; ntau_g += 1.0; ifMag+=table.data[i][cifMag];}
+    }
+    tau_g/=ntau_g;
+    for (auto i=0; i<table.data.size(); i++){
+        if((table.data[i][cPlaneID]<3.9 || table.data[i][cPlaneID]>4.1) && table.data[i][cconstraint] <1){dtau_g += pow(table.data[i][ctau_g]-tau_g,2); }
+    }
+    printf("DATA:%f %f %f\n",tau_g, ifMag/ntau_g, sqrt(dtau_g/(ntau_g-1.0)));
+    return;
+}
+
+void SpecifyEquations13(Table_t &table)
+{
+    int cIndex = GetColIDFromTable(table, "index"); // units %
+    int cBurgID = GetColIDFromTable(table, "burgID"); // units %
+    int cPlaneID = GetColIDFromTable(table, "normalID"); // units %
+    int cInGrain = GetColIDFromTable(table, "inGrain"); // units %
+    int cOnGB = GetColIDFromTable(table, "onGB"); // units %
+    int ctau_g = GetColIDFromTable(table, "tau_g"); // MPa
+    int cifMag = GetColIDFromTable(table, "ifMag"); // MPa
+    int cconstraint=GetColIDFromTable(table, "constraint");
+    for (auto i=0; i<table.data.size(); ){
+        if (!(table.data[i][cBurgID] > 4.5 && table.data[i][cBurgID] < 5.5 && table.data[i][cInGrain] < 0.5 && table.data[i][cInGrain] > -0.5)){
+            table.data.erase(table.data.begin()+i, table.data.begin()+i+1);            
+            printf("erase %d\n",i);
+        }else{i++;printf("++ %d\n",i);}
+    }
+    printf("i=%d\n",table.i);
+    table.i = table.data.size();
+    printf("i=%d\n",table.i);
+}
+void SpecifyEquations12(Table_t &table)
+{
+    int cX = GetColIDFromTable(table, "Z"); // units %
+    int cY = GetColIDFromTable(table, "Y"); // units %
+    int cZ = GetColIDFromTable(table, "Z"); // units %
+    int cIndex = GetColIDFromTable(table, "index"); // units %
+    int cConstraint = GetColIDFromTable(table, "constraint"); // units %
+    int cBurgID = GetColIDFromTable(table, "burgID"); // units %
+    double p[3]={0,0,0};
+    std::vector<int> ids;
+    int constraint=-1;
+
+    for (auto i=0; i<table.data.size(); i++){
+        double &x=table.data[i][cX];
+        double &y=table.data[i][cY];
+        double &z=table.data[i][cZ];
+        if((x-p[0])*(x-p[0])+(y-p[1])*(y-p[1])+(z-p[2])*(z-p[2]) > 1.0 || i==table.data.size()-1){
+            for(auto j=0;j<ids.size();j++)table.data[ids[j]][cConstraint]=constraint;
+            ids.resize(1); ids[0]=i; constraint=-1;
+        }else{
+            ids.push_back(i);
+        }
+        if(fabs(table.data[i][cIndex]-5)<0.1 && table.data[i][cConstraint]>3.5)table.data[i][cConstraint]=6;
+        constraint = (table.data[i][cConstraint]>constraint)?table.data[i][cConstraint]:constraint;
+        if(table.data[i][cIndex]>4){
+            if(table.data[i][cBurgID]<6) table.data[i][cIndex] = 5;
+            else if(table.data[i][cBurgID]>17 && table.data[i][cBurgID]<21)table.data[i][cIndex] = 6;
+            else table.data[i][cIndex] = 7;
+        }
+    }
+    return;
+}
 void SpecifyEquations(Table_t &table)
 {
         int     i, j;
 
-        SpecifyEquations1(table);
+        SpecifyEquations11(table);
+//      ClearRepetition(table);
     
         return;
 }
+#ifdef GSL
+#include <gsl/gsl_fit.h>
+bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard, real8 &thard, real8 &twindef, real8 &crss){
+    int cStrain = GetColIDFromTable(table, "strain"); // units %
+    int cStress = GetColIDFromTable(table, "stress"); // units MPa
+    int cPst = GetColIDFromTable(table, "plastic_strain");
+    int cTpst = GetColIDFromTable(table, "twinning_deformation"); 
+    int cDen = GetColIDFromTable(table, "disDen");
+    int cFit = GetColIDFromTable(table, "fit_stress");
+    
+    static const double schmid[28]={
+                                2.7216553e-01,
+                                4.0409609e-01,
+                                4.4647817e-01,
+                                5.0000000e-01,
+                                4.3301270e-01,
+                                4.5306962e-01,
+                                4.0824829e-01,
+                                4.2060056e-01,
+                                4.8629953e-01,
+                                4.9279928e-01,
+                                4.9240388e-01,
+                                4.9240388e-01,
+                                5.0000000e-01,
+                                4.5810976e-01,
+                                4.7384710e-01,
+                                4.7303654e-01,
+                                4.5465119e-01,
+                                4.8571785e-01,
+                                4.9934573e-01,
+                                4.9317787e-01,
+                                4.9400820e-01,
+                                4.8766921e-01,
+                                4.4297535e-01,
+                                4.6424283e-01,
+                                4.7140452e-01,
+                                4.6424283e-01,
+                                4.4297535e-01,
+                                4.0824829e-01};
 
-bool Analysis(Table_t &table, real8 &sigma, real8 &hard, real8 &twindef){
-    int last=table.data.size()-1; real8 strain;
-    for(int i=0; i<last; i++){
-        if(table.data[i][3] >0.1){
-            if(table.data[last][3]-table.data[i][3]<0.05)return false;
-            sigma = table.data[i][2];
-            strain = table.data[i][1];
-            hard = (table.data[last][2]-sigma)/(table.data[last][1]-strain);
-            twindef = 1.0E2*fabs(table.data[i][4]/table.data[i][3]);
-            return true;
+
+    double strain, stress, pst, tpst, den;
+    int last=0;
+    int i;
+    for(i=table.data.size()-1; i>0; i--){
+        if(table.data[i][cStrain] < 0.5){last=i; break;};
+    }
+    last = table.data.size()-1;
+    double l_strain=table.data[last][cStrain];
+    double l_stress=table.data[last][cStress];
+    double l_pst=table.data[last][cPst];
+    double l_tpst=(cTpst>-1)?table.data[last][cTpst]:0;
+    double l_den=table.data[last][cDen];
+    bool fit = (cFit<0)?true:false;
+    printf("cFit = %d\n",cFit);
+
+    double critPst= 0.19, youngs0 = 123.275, youngs,critStn=0.201;
+    int  critI,elaI=-1;
+
+#if 0
+    critPst=0.002;
+    critStn=0.1;
+#else
+    if(l_pst<0.2){
+        return false;
+    }
+#endif
+    for(i=0; i<last; i++){
+        pst=table.data[i][cPst];
+        if(pst>1.0E-3 && elaI==-1){elaI=i;}
+        if(pst > critPst){
+            sigma = table.data[i][cStress];
+            critStn=table.data[i][cStrain];
+            critI = i;
+            break;
         }
     }
-    return false;
+    if(last==i){
+        return false;
+    }
+    if(sf<0){
+        pointID -=1;
+        if(pointID>-1){
+            crss = sigma*schmid[pointID];
+            printf("point %d: %7.4e=%7.4e*%7.4e\n",pointID+1, crss, sigma, schmid[pointID]);
+        }else crss = 0.0;
+    }else{
+        crss = sf*sigma;
+        printf("crss=%f*%f=%f\n",sf,sigma,crss);
+    }
+    twindef = 100.0*table.data[last][cTpst]/table.data[last][cPst];
+    
+    int nPoints = last-i+1;
+    double *stnList, *strList, *tpstList, *eStnList, *eStrList; 
+    stnList = (double *)malloc(nPoints*sizeof(double));
+    strList = (double *)malloc(nPoints*sizeof(double));
+    tpstList = (double *)malloc(nPoints*sizeof(double));
+    eStrList = (double *)malloc((elaI+1)*sizeof(double));
+    eStnList = (double *)malloc((elaI+1)*sizeof(double));
+
+    int j=0;
+    double c0, c1, cov00, cov01, cov11, chisq, c00, c11;
+    for(j=0; j<elaI+1; j++){
+        eStnList[j] = table.data[j][cStrain];
+        eStrList[j] = table.data[j][cStress];
+    } 
+    gsl_fit_mul(eStnList,1,eStrList,1,elaI+1,&c1,&cov11,&chisq);
+    youngs = c1/10.0; 
+
+    free(eStrList);
+    free(eStnList);
+
+    j=0;
+    for(/*skip*/; i<last+1; i++){
+        stnList[j] = table.data[i][cStrain];
+        strList[j] = table.data[i][cStress];
+        tpstList[j] = (cTpst>-1)?-youngs0*table.data[i][cTpst]:0.0;
+        j++;
+    }
+
+    gsl_fit_linear(stnList,1,strList,1,nPoints,&c0,&c1,&cov00,&cov01,&cov11,&chisq);
+    hard = 0.1*c1; c00=c0; c11=c1;
+//  sigma = c0+c1*critStn;
+    
+    if(cTpst>-1){
+        gsl_fit_linear(stnList,1,tpstList,1,nPoints,&c0,&c1,&cov00,&cov01,&cov11,&chisq);
+        thard = 0.1*c1;
+    }else thard = 0.0;
+
+    
+#if 0
+    printf ("# best fit: Y = %g + %g X\n", c0, c1);
+    printf ("# covariance matrix:\n");
+    printf ("# [ %g, %g\n#   %g, %g]\n",
+          cov00, cov01, cov01, cov11);
+    printf ("# chisq = %g\n", chisq);
+#endif
+
+    free(stnList);
+    free(strList);
+    free(tpstList);
+
+    double inp = c00/(10.0*youngs-c11);
+    if(fit){
+        printf("Plot Fitting curve ... intersection point (%5.2f,%5.2f)\n",inp, 10.0*youngs*inp);
+        table.variables.push_back("fit_stress");
+        for(i=0;i<table.data.size();i++){
+            strain = table.data[i][cStrain];
+            if(strain<inp){
+                table.data[i].push_back(youngs*10.0*strain);
+            }else{
+                table.data[i].push_back(c11*strain+c00);
+            }
+        }   
+    }
+
+    return true;
 }
+#else
 bool Analysis(Table_t &table, real8 &crss){
     crss = -1;
     real8 max=0;
@@ -466,4 +621,4 @@ bool Analysis(Table_t &table, real8 &crss){
     }
     return true;
 }
-
+#endif

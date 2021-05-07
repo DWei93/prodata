@@ -365,7 +365,11 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
         }
         
         SpecifyEquations(tables[i]);
-        WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
+        if(inArgs->outFiles.size() == inArgs->inpFiles.size()){
+            WriteTecplotNormalData(tables[i], inArgs->outFiles[i], 10, secLine); 
+        }else{
+            WriteTecplotNormalData(tables[i], inArgs->inpFiles[i], 10, secLine); 
+        }
     }
     return;
 }
@@ -426,9 +430,10 @@ void HandleTecplotData(InArgs_t *inArgs)
     int     i, index, pointID=0;
     bool    readState;
     string  secLine, noBackupName = ("nobackup"), backupFile, sufBack = (".bak");
-    string  pointIDName=("pointID");
+    string  pointIDName=("pointID"), sfName("sf");
     char    name[256];
     bool    backup = 1;
+    double  sf=-1.0;
 
     vector<Table_t> tables;
 
@@ -443,11 +448,16 @@ void HandleTecplotData(InArgs_t *inArgs)
         Fatal("There is no input file.");
     }
 
+    if((index = GetValID(inArgs->priVars, sfName)) < inArgs->priVars.size()){
+        sf = atof(inArgs->priVars[index].vals[0].c_str());
+        printf("Schmid Factor = %f \n", sf);
+    }
+
     if((index = GetValID(inArgs->priVars, pointIDName)) < inArgs->priVars.size()){
     }else index =-1;
 
     tables.resize(inArgs->inpFiles.size());
-#if 0
+#ifndef GSL
     real8 crss;
     vector<real8> crsses;
         
@@ -487,8 +497,16 @@ void HandleTecplotData(InArgs_t *inArgs)
         if(index>-1 && i/3<inArgs->priVars[index].vals.size())pointID = atoi(inArgs->priVars[index].vals[i/3].c_str());
         else if (index < 0) pointID=-1;
         else pointID=atoi(inArgs->priVars[index].vals[0].c_str());
+
+        if(tables[i].aux.empty() == false){
+            auto a = tables[i].aux.find("schmid");
+            if(a!=tables[i].aux.end()){
+                sf = atof(a->second.c_str());
+                printf("Schmid factor from aux data %f\n",sf);
+            }
+        }
         
-        if(true==Analysis(pointID,tables[i], sigma, hard, thard, twindef, crss)){
+        if(true==Analysis(pointID, sf, tables[i], sigma, hard, thard, twindef, crss)){
             d[0]=sigma; d[1]=hard; d[2]=thard; d[3]=twindef; d[4]=0; d[5]=0; d[6]=0; d[7]=0; d[8]=crss; d[9]=0;
             dl.push_back(d);
         }else{
@@ -508,14 +526,13 @@ void HandleTecplotData(InArgs_t *inArgs)
         d[8] += (dl[j][8]/num);
     }
 
-    if(num>0){
-        num-=1.0;
+    if(num>1){
         for(int j=0;j<dl.size();j++){
-            d[4]+=pow(dl[j][0]-d[0],2)/num;
-            d[5]+=pow(dl[j][1]-d[1],2)/num;
-            d[6]+=pow(dl[j][2]-d[2],2)/num;
-            d[7]+=pow(dl[j][3]-d[3],2)/num;
-            d[9]+=pow(dl[j][8]-d[8],2)/num;
+            d[4]+=pow(dl[j][0]-d[0],2)/(num-1.0);
+            d[5]+=pow(dl[j][1]-d[1],2)/(num-1.0);
+            d[6]+=pow(dl[j][2]-d[2],2)/(num-1.0);
+            d[7]+=pow(dl[j][3]-d[3],2)/(num-1.0);
+            d[9]+=pow(dl[j][8]-d[8],2)/(num-1.0);
         }
     }
 
@@ -590,7 +607,7 @@ void AnimateCurve(InArgs_t *inArgs){
         y=inArgs->priVars[index].vals[0];
     }   
 
-    if((index = GetValID(inArgs->priVars, yName)) < inArgs->priVars.size()){
+    if((index = GetValID(inArgs->priVars, nPointsName)) < inArgs->priVars.size()){
         fps=atoi(inArgs->priVars[index].vals[0].c_str());
     }   
 
@@ -603,8 +620,11 @@ void AnimateCurve(InArgs_t *inArgs){
     if(!readState)Fatal("can not read file %s", inArgs->inpFiles[0].c_str());
 
     Table_t auxTable;
-    auxTable.variables.resize(table.variables.size()-1); 
-    for(i=0; i<auxTable.variables.size(); i++)auxTable.variables[i]=table.variables[i+1];
+    int cx = GetColIDFromTable(table, x);
+    int cy = GetColIDFromTable(table, y);
+    auxTable.variables.resize(2); 
+    auxTable.variables[0]=x;
+    auxTable.variables[1]=y;
     auxTable.i=1; auxTable.j=1; auxTable.k=1;
 
     int nPoints =int(table.data.size());
@@ -616,15 +636,25 @@ void AnimateCurve(InArgs_t *inArgs){
         freq = nPoints/(fps-1); addLast=true;
     }
 
-    vector<double> point(table.variables.size()-1);
+    vector<double> point(2);
+    if(cx<0 || cy<0)Fatal("can not find %s or %s",x.c_str(),y.c_str());
+
+    double x_range[2]={table.data[0][cx],table.data[0][cx]}, y_range[2]={table.data[0][cy],table.data[0][cy]};
+
+    int nZones=0;
     for(i=0; i<table.data.size(); i++){
-        for (int j=0; j<point.size(); j++){
-            point[j]=table.data[i][j+1];
-        }
+        point[0]=table.data[i][cx];
+        point[1]=table.data[i][cy];
+        if(point[1]>1E10)point[1]/=1E12;
+        if(point[0]<x_range[0])x_range[0]=point[0];
+        if(point[0]>x_range[1])x_range[1]=point[0];
+        if(point[1]<y_range[0])y_range[0]=point[1];
+        if(point[1]>y_range[1])y_range[1]=point[1];
         auxTable.data.push_back(point);
         if((i%freq)==0){
             auxTable.solutionTime = table.data[i][0];
-            auxTable.T=to_string(i+1); auxTable.i = i+1; auxTable.F="Point"; 
+            auxTable.T=to_string(table.data[i][0]); auxTable.i = i+1; auxTable.F="Point"; 
+            nZones++;
             if(i==0){
                 WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::out); 
             }else{
@@ -632,12 +662,19 @@ void AnimateCurve(InArgs_t *inArgs){
             }
         }
     }
+    if(x_range[0]<1E-2)x_range[0]=0;
+    x_range[1]=floor(x_range[1]/0.1)*0.1+0.1;
+    if(y_range[0]<1)y_range[0]=0;
+    y_range[1] = floor(y_range[1]/50)*50+50;
 
     if(addLast){
         auxTable.solutionTime = table.data[i-1][0];
-        auxTable.T=to_string(i); auxTable.i = i; auxTable.F="Point"; 
+        auxTable.T=to_string(table.data[i-1][0]); auxTable.i = i; auxTable.F="Point"; 
         WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::app); 
+         nZones++;
     }
+    printf("Suggestion range: %g %g %g %g\n",x_range[0],x_range[1],y_range[0],y_range[1]);
+    printf("nZones: %d\n",nZones);
     return;
 }
 

@@ -370,27 +370,27 @@ int main(int argc, char *argv[])
 #else
         
         switch (inArgs.type) {
-            case FTYPE_AVERAGE_LINES:
+            case FTYPE_AVERAGE_LINES: //0
                 AverageLines(&inArgs);
                 break;
-            case FTYPE_PROC_EXTEND_DIS_DDD:
+            case FTYPE_PROC_EXTEND_DIS_DDD:  //1
                 HandleExtendedDislocation_DDD(&inArgs);
                 break;
-            case FTYPE_PROC_EXTEND_DIS_MD:
+            case FTYPE_PROC_EXTEND_DIS_MD:  //2
                 HandleExtendedDislocation_MD(&inArgs);
                 break;
-            case FTYPE_SPECIFY_EQUATIONS:
+            case FTYPE_SPECIFY_EQUATIONS:   //3
                 SpecifyEquations_PLTDATA(&inArgs);
                 break;
-            case FTYPE_GENERATE_DISLOCATION:
+            case FTYPE_GENERATE_DISLOCATION:    //4
                 GenerateDislocation(&inArgs);
                 break;
-            case FTYPE_DATA_HANDLING:
+            case FTYPE_DATA_HANDLING: //5
                 HandleTecplotData(&inArgs);
                 break;
-            case FTYPE_ANIMATE_AUXDATA:
+            case FTYPE_ANIMATE_AUXDATA: //6
                 AnimateAuxData(&inArgs);
-            case FTYPE_ANIMATE_CURVE:
+            case FTYPE_ANIMATE_CURVE: //7
                 AnimateCurve(&inArgs);
                 break;
         }
