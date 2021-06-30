@@ -18,9 +18,9 @@ LINK_DIRECTORIES($ENV{HOME}/LIB/lib)
 If(GSL_FOUND)
     target_link_libraries(prodata m pthread gsl gslcblas)
     add_definitions( -DGSL)
-else
+else(GSL_FOUND)
     target_link_libraries(prodata m pthread)
-endif 
+endif(GSL_FOUND)
 Install(TARGETS prodata
         RUNTIME DESTINATION bin)
 
