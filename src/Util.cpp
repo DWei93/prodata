@@ -363,7 +363,8 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
             backupFile = inArgs->inpFiles[i] + sufBack;
             WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
         }
-        
+        snprintf(name, sizeof(name), "%06d", i);
+        tables[i].aux["id"] = name;
         SpecifyEquations(tables[i]);
         if(inArgs->outFiles.size() == inArgs->inpFiles.size()){
             WriteTecplotNormalData(tables[i], inArgs->outFiles[i], 10, secLine); 
