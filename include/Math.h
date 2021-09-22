@@ -39,6 +39,19 @@
 #define EPS1 1.0E-4
 #define EPS2 1.0E-11
 
+/** Check if the variable is numerical. */
+inline bool Numerical(double v){return (!isnan(v) && !isinf(v));}
+inline bool Numerical(double *vec){
+    return (!isnan(vec[0]) && !isinf(vec[0]) &&
+            !isnan(vec[1]) && !isinf(vec[1]) &&
+            !isnan(vec[2]) && !isinf(vec[2]));
+}
+inline bool Numerical(double ax, double ay, double az){
+    return (!isnan(ax) && !isinf(ax) &&
+            !isnan(ay) && !isinf(ay) &&
+            !isnan(az) && !isinf(az));
+
+}
 int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
                            double *vec1, double *vec2);
 int LinePlaneIntersection(double *d, double *p1, double *n, double *p2, 

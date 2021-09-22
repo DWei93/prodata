@@ -7,6 +7,7 @@
 
 #include "DDD.h"
 #include "MD.h"
+#include "Math.h"
 
 #define     MAXLINELENGTH 1024
 
@@ -59,7 +60,7 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     Variable_t  auxVar;
 
     bool    firstPoint = 1;
-    int     currSize;
+    int     currSize, rowNow=0;
     char    *p2;
     int     line=0;
     while(1){
@@ -164,19 +165,30 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                     table.data[i][j] = atof(strtok(NULL, " \n"));
                 }
                 rt = fgets(str, MAXLINELENGTH, fp);
+                rowNow++;
             }
         }else{
             currSize = (int)table.data.size();
-            table.data.resize(currSize+numPoints);
-            table.data[currSize].resize(table.variables.size());
-            table.data[currSize][0] = atof(strtok(str, " ")); 
-            for(j=1; j<table.variables.size(); j++){
-                table.data[currSize][j] = atof(strtok(NULL, " \n"));
+            if(currSize<=rowNow){
+                currSize += 100;
+                table.data.resize(currSize);
+                for(int row=0;row<100;row++)table.data[rowNow+row].resize(table.variables.size());
             }
+            p = strtok(str, " ");
+            if(p == nullptr)Fatal("Read error in %s at row %d",file.c_str(),currSize);
+            table.data[rowNow][0] = atof(p); 
+            for(j=1; j<table.variables.size(); j++){
+                p = strtok(NULL, " ");
+                if(p == nullptr)Fatal("Read error in %s at row %d",file.c_str(),rowNow+1);
+                table.data[rowNow][j] = atof(p);
+                if(!Numerical(table.data[rowNow][j]))Fatal("Read error in %s at row %d",file.c_str(),rowNow+1);
+            }
+            rowNow++;
         }
     }
     fclose(fp);
 
+    table.data.resize(rowNow);
     if((int)table.data.size() != table.i*table.j*table.k)table.i = (int)table.data.size();
     printf("Finish reading input file %s, %d points\n", file.c_str(), (int)table.data.size());    
     return 1;            

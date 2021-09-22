@@ -6,7 +6,7 @@ Set (SRCS
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -std=c++11" )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11" )
 
-if(OPENMP_FOUND)  
+if(OPENMP_FOUND)     
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -openmp")
 endif(OPENMP_FOUND)
 
@@ -15,7 +15,12 @@ add_definitions( -DPARALLEL=1)
 
 INCLUDE_DIRECTORIES(../include $ENV{HOME}/LIB/include)
 LINK_DIRECTORIES($ENV{HOME}/LIB/lib)   
-target_link_libraries(prodata m pthread gsl gslcblas)
+If(GSL_FOUND)
+    target_link_libraries(prodata m pthread gsl gslcblas)
+    add_definitions( -DGSL)
+else(GSL_FOUND)
+    target_link_libraries(prodata m pthread)
+endif(GSL_FOUND)
 Install(TARGETS prodata
         RUNTIME DESTINATION bin)
 

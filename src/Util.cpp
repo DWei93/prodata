@@ -369,7 +369,8 @@ void SpecifyEquations_PLTDATA(InArgs_t *inArgs)
             backupFile = inArgs->inpFiles[i] + sufBack;
             WriteTecplotNormalData(tables[i], backupFile, 10, secLine); 
         }
-        
+        snprintf(name, sizeof(name), "%06d", i);
+        tables[i].aux["id"] = name;
         SpecifyEquations(tables[i]);
         if(inArgs->outFiles.size() == inArgs->inpFiles.size()){
             WriteTecplotNormalData(tables[i], inArgs->outFiles[i], 10, secLine); 
@@ -463,7 +464,7 @@ void HandleTecplotData(InArgs_t *inArgs)
     }else index =-1;
 
     tables.resize(inArgs->inpFiles.size());
-#if 0
+#ifndef GSL
     real8 crss;
     vector<real8> crsses;
         
@@ -600,18 +601,30 @@ bool FindLinearPart(real8 (*line)[3], const int nums, int range[2])
     return 0;
 } 
 
+void AdjustRangeAndGRSpacing(double &min, double &max, double &spacing)
+{
+    double l=max-min;
+    if(l<0){
+        double t=max; max=min; min=t; l=fabs(l);
+    }
+    if(fabs(min)<l/100.0){min=0.0;}
+    min=round(min); max=round(max); l=max-min;
+    double g=l/40.0;
 
-
+}
 void AnimateCurve(InArgs_t *inArgs){
     int index, fps=100,i;
-    string xName=("x"), yName=("y"), x("strain"), y("stress"), nPointsName("fps"), secLine, fileName("aux.plt"), auxName("plt");
+    string xName=("x"), yName=("y"), x("strain"), nPointsName("fps"), secLine, fileName("aux.plt"), auxName("plt");
+    std::vector<string> ys;
 
     if((index = GetValID(inArgs->priVars, xName)) < inArgs->priVars.size()){
         x=inArgs->priVars[index].vals[0];
     }   
     if((index = GetValID(inArgs->priVars, yName)) < inArgs->priVars.size()){
-        y=inArgs->priVars[index].vals[0];
-    }   
+        for (i=0;i<inArgs->priVars[index].vals.size();i++)ys.push_back(inArgs->priVars[index].vals[i]);
+    }else{
+        ys.push_back("stress");
+    }
 
     if((index = GetValID(inArgs->priVars, nPointsName)) < inArgs->priVars.size()){
         fps=atoi(inArgs->priVars[index].vals[0].c_str());
@@ -624,13 +637,24 @@ void AnimateCurve(InArgs_t *inArgs){
     if(inArgs->inpFiles.size() == 0)Fatal("no inpurt file");
     readState = ReadTecplotNormalData(inArgs->inpFiles[0], table, secLine);
     if(!readState)Fatal("can not read file %s", inArgs->inpFiles[0].c_str());
-
     Table_t auxTable;
     int cx = GetColIDFromTable(table, x);
-    int cy = GetColIDFromTable(table, y);
-    auxTable.variables.resize(2); 
+    std::vector<int> cys;
+
+    for (i=0;i<ys.size();){
+        int id;
+        if((id=GetColIDFromTable(table,ys[i])) > -1){
+            cys.push_back(id);
+            i++;
+        }else{
+            printf("Warning: erase invalid variable %s\n",ys[i].c_str());
+            ys.erase(ys.begin()+i);
+        }
+    }
+
+    auxTable.variables.resize(1+ys.size()); 
     auxTable.variables[0]=x;
-    auxTable.variables[1]=y;
+    for(i=0;i<ys.size();i++)auxTable.variables[i+1]=ys[i];
     auxTable.i=1; auxTable.j=1; auxTable.k=1;
 
     int nPoints =int(table.data.size());
@@ -642,16 +666,35 @@ void AnimateCurve(InArgs_t *inArgs){
         freq = nPoints/(fps-1); addLast=true;
     }
 
-    vector<double> point(2);
-    if(cx<0 || cy<0)Fatal("can not find %s or %s",x.c_str(),y.c_str());
+    vector<double> point(1+ys.size());
+    if(cx<0)Fatal("can not find %s",x.c_str());
 
+    double x_range[2]={table.data[0][cx],table.data[0][cx]};
+    std::vector<double> y_range(2*ys.size());
+    for(i=0; i<ys.size(); i++){
+        y_range[2*i] = table.data[0][cys[i]];
+        y_range[2*i+1] = y_range[2*i];
+        if(y_range[2*i]>1E10)y_range[2*i]=0.0;
+        if(y_range[2*i+1]>1E10)y_range[2*i+1]/=1E12;
+    }
+
+    int nZones=0, j;
     for(i=0; i<table.data.size(); i++){
         point[0]=table.data[i][cx];
-        point[1]=table.data[i][cy];
+        for(j=0;j<ys.size();j++){
+            point[1+j]=table.data[i][cys[j]];
+            if(point[1+j]>1E10)point[1+j]/=1E12;
+            if(point[1+j]<y_range[2*j])y_range[2*j]=point[1+j];
+            if(point[1+j]>y_range[2*j+1])y_range[2*j+1]=point[1+j];
+        }
+        if(point[0]<x_range[0])x_range[0]=point[0];
+        if(point[0]>x_range[1])x_range[1]=point[0];
+
         auxTable.data.push_back(point);
         if((i%freq)==0){
             auxTable.solutionTime = table.data[i][0];
-            auxTable.T=to_string(i+1); auxTable.i = i+1; auxTable.F="Point"; 
+            auxTable.T=to_string(table.data[i][0]); auxTable.i = i+1; auxTable.F="Point"; 
+            nZones++;
             if(i==0){
                 WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::out); 
             }else{
@@ -660,11 +703,22 @@ void AnimateCurve(InArgs_t *inArgs){
         }
     }
 
+    if(fabs(x_range[0])<1E-2)x_range[0]=0;
+    x_range[1]=floor(x_range[1]/0.1)*0.1+0.1;
+    for(j=0;j<ys.size();j++){
+        if(fabs(y_range[2*j])<1)y_range[2*j]=0;
+        y_range[2*j+1] = floor(y_range[2*j+1]/50)*50+50;
+    }
+
     if(addLast){
         auxTable.solutionTime = table.data[i-1][0];
-        auxTable.T=to_string(i); auxTable.i = i; auxTable.F="Point"; 
+        auxTable.T=to_string(table.data[i-1][0]); auxTable.i = i; auxTable.F="Point"; 
         WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::app); 
+         nZones++;
     }
+    printf("Suggestion range: %g %g",x_range[0],x_range[1]);
+    for(i=0;i<y_range.size();i++)printf(" %g",y_range[i]);
+    printf("\nnZones: %d\n",nZones);
     return;
 }
 
