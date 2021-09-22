@@ -190,6 +190,18 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
     int     pbc = 0, numDiss;
     int     j, nXCells=1, nYCells=1, nZCells=1, maxCells=3;
 
+    if(inArgs->help){
+        printf("Function:           Generate extended dislocation through non-singular displacement field\n");
+        printf("    -dpos:              dislocation position\n");
+        printf("    -dline              line direction of the dislocation\n");
+        printf("    -dgDir:             glide direction of the dislocation\n");
+        printf("    -dburg:             Burgers vectors of patial dislocations d\n");
+        printf("    -dbound:            PBC boundary conditions\n");
+        printf("    -ddebug:            debug of this function, output unaided displacement field\n");
+        printf("    -outfile:           dump file or lmp file\n");
+        return;
+    }
+
     bool debug=false;
     double      k[3] = {-1,-1,-1};
     double      shf[3] = {0,0,0};
@@ -202,7 +214,6 @@ void GenerateExtendedDislocation(InArgs_t *inArgs)
         printf("Debug Model on, ampplification %f times\n", mfactor);
     }
 
-   
     if((index = GetValID(inArgs->priVars, posName)) < inArgs->priVars.size()){
         if(inArgs->priVars[index].vals.size() == 3){
             char    *token, str[64];

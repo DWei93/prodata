@@ -72,7 +72,7 @@ static void Usage(char *program)
         printf("    -o[utfile]:         output files\n");
         printf("    -a[uxfile]:         auxiliary files\n");
         printf("    -t[ype]:            function type\n");
-        printf("    -d[<variavles>]:    functoon variables, defined by function\n");
+        printf("    -d[<variavles>]:    function variables, defined by function\n");
         printf("    -n[threads]:        num of threads\n\n");
         return;
 }

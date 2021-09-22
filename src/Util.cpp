@@ -444,6 +444,16 @@ void HandleTecplotData(InArgs_t *inArgs)
 
     vector<Table_t> tables;
 
+    if(inArgs->help){
+        printf("Function:           Probe tecplot data file\n");
+        printf("    -dnobackup:         no backup\n");
+        printf("    -dsf                Schmid factor of this sample (handle stress-strain curves)\n");
+        printf("    -dpoint             data point (loading direction for multilayed structure)\n");
+        printf("    Using definition GSL to fitting curves\n");
+        printf("    Modify the custom/customs.cpp according to your needs\n");
+        return;
+    }
+
     if((index = GetValID(inArgs->priVars, noBackupName)) < inArgs->priVars.size()){
         backup = 0;
         printf("Backup: NO! (nobackup)\n");
