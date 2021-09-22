@@ -67,6 +67,13 @@ Option_t optList[OPT_MAX] = {
  *-------------------------------------------------------------------------*/
 static void Usage(char *program)
 {
+        printf("    -h[elp]:            Print this function\n");
+        printf("    -i[nputfile]:       input files\n");
+        printf("    -o[utfile]:         output files\n");
+        printf("    -a[uxfile]:         auxiliary files\n");
+        printf("    -t[ype]:            function type\n");
+        printf("    -d[<variavles>]:    functoon variables, defined by function\n");
+        printf("    -n[threads]:        num of threads\n\n");
         return;
 }
 
@@ -86,10 +93,6 @@ static void Usage(char *program)
 static void PrintHelp(char *program)
 {
     Usage(program);
-
-    printf("    Options may be abbreviated to the shortest non-ambiguous\n");
-    printf("\n");
-
 }
 
 /*---------------------------------------------------------------------------
@@ -263,7 +266,6 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 default:
                     break;
             }
-
         }
         
 #if 0
@@ -304,14 +306,14 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         sort(inArgs->auxFiles.begin(), inArgs->auxFiles.end());
 #if 1
         if(inArgs->inpFiles.size()<5){
-            printf("Input files are:\n");
+            if(inArgs->help==0)printf("Input files are:\n");
             for(i=0; i<inArgs->inpFiles.size(); i++){
                 printf("%s \n", inArgs->inpFiles[i].c_str());
             }
         }
     
         if(inArgs->auxFiles.size() < 5){
-            printf("Auxiliary file(s) :\n");
+            if(inArgs->help==0)printf("Auxiliary file(s) :\n");
             for(i=0; i<inArgs->auxFiles.size(); i++){
                 printf("%s \n", inArgs->auxFiles[i].c_str());
             }
@@ -335,7 +337,7 @@ int main(int argc, char *argv[])
 #ifdef _OPENMP
         omp_set_num_threads(inArgs.nThreads); 
 
-        printf("Threads count: %d \n", omp_get_max_threads());
+        if(inArgs.help==0)printf("Threads count: %d \n", omp_get_max_threads());
 #endif
 /*
  *      All that's left is to invoke the proper function to
@@ -370,27 +372,27 @@ int main(int argc, char *argv[])
 #else
         
         switch (inArgs.type) {
-            case FTYPE_AVERAGE_LINES:
+            case FTYPE_AVERAGE_LINES: //0
                 AverageLines(&inArgs);
                 break;
-            case FTYPE_PROC_EXTEND_DIS_DDD:
+            case FTYPE_PROC_EXTEND_DIS_DDD:  //1
                 HandleExtendedDislocation_DDD(&inArgs);
                 break;
-            case FTYPE_PROC_EXTEND_DIS_MD:
+            case FTYPE_PROC_EXTEND_DIS_MD:  //2
                 HandleExtendedDislocation_MD(&inArgs);
                 break;
-            case FTYPE_SPECIFY_EQUATIONS:
+            case FTYPE_SPECIFY_EQUATIONS:   //3
                 SpecifyEquations_PLTDATA(&inArgs);
                 break;
-            case FTYPE_GENERATE_DISLOCATION:
+            case FTYPE_GENERATE_DISLOCATION:    //4
                 GenerateDislocation(&inArgs);
                 break;
-            case FTYPE_DATA_HANDLING:
+            case FTYPE_DATA_HANDLING: //5
                 HandleTecplotData(&inArgs);
                 break;
-            case FTYPE_ANIMATE_AUXDATA:
+            case FTYPE_ANIMATE_AUXDATA: //6
                 AnimateAuxData(&inArgs);
-            case FTYPE_ANIMATE_CURVE:
+            case FTYPE_ANIMATE_CURVE: //7
                 AnimateCurve(&inArgs);
                 break;
         }

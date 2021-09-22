@@ -45,6 +45,16 @@ void HandleExtendedDislocation_DDD(InArgs_t *inArgs)
     Table_t         auxTable;
     vector<Table_t> auxTables;
 
+    if(inArgs->help){
+        printf("Function:           Handle extended dislocation (2D) in DDD simulation\n");
+        printf("    -dcubel:            cubel size of the cell\n");
+        printf("    -dburgID:           two burg indexs of the extended dislocation\n");
+        printf("    -dremesh:           remesh size of dislocation\n");
+        printf("    -auxfile:           stress-strain curve files\n");
+        printf("    -outfile:           <standardized file> <structure file> <stress-strain curve file>\n");
+        return;
+    }
+
     vec.resize(12);
 
     InitList(list);
@@ -446,6 +456,20 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
     vector<Atom_t>::iterator     it; 
     vector<EDState_t>   states;
 
+    if(inArgs->help){
+        printf("Function:           Handle extended dislocation (2D) in MD simulation\n");
+        printf("    -dmargin:           margin of surface atoms (disorder atoms)\n");
+        printf("    -dpara:             <cut-off length> <resolution>\n");
+        printf("    -ddvar:             control variable\n");
+        printf("    -p0:                initial position of the extended dislocation\n");
+        printf("    -ddir:              dislocation direction\n");
+        printf("    -dnums:             range number of partial dislocation core atoms\n");
+        printf("    -dseparation:       range separation of the extended dislocations\n");
+        printf("    -auxfile:           log file\n");
+        printf("    -input:             dump file\n");
+
+        return;
+    }
     Table_t table; InitTable(table);
 
     if((index = GetValID(inArgs->priVars, auxName)) < inArgs->priVars.size()){

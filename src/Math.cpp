@@ -16,7 +16,7 @@ void AverageLines(InArgs_t *inArgs)
     bool    firstFile = 1, specifyEqu = 0;
     real8   rsize = 0, min, max, effNums = 0, value;
     string  rsizeName("rsize"), varsName("vars"), overName("over"), specifyEquName("spe"), sortName("sort"), sortBy;
-    string  str("Ave_"), secLine, tauName("tau"), overVar, weighName("weigh"), weightCoeff;
+    string  str("Ave_"), secLine, tauName("sigma"), overVar, weighName("weigh"), weightCoeff;
 
     bool        calTau = false, sort=false;
     LineList_t  list;
@@ -28,6 +28,18 @@ void AverageLines(InArgs_t *inArgs)
     vector<Table_t>     tables(inArgs->inpFiles.size());
     vector<string>      s1, s2;
     vector<vector<vector<real8> > > array;
+
+    if(inArgs->help){
+        printf("Function:           Average Lines\n");
+        printf("    -dover:             independent variable name \n");
+        printf("    -dvars:             dependent variable names \n");
+        printf("    -dweigh:            weight variable name\n");
+        printf("    -dresize:           increment size of independent variable\n");
+        printf("    -dspe:              specify custom equation\n");
+        printf("    -dsort:             sort variable\n");
+        printf("    -dsigma:            caculate variance (STDEV)\n");
+        return;
+    }
 
     bool weigh = false;
     if((index = GetValID(inArgs->priVars, weighName)) < inArgs->priVars.size()){
@@ -52,9 +64,9 @@ void AverageLines(InArgs_t *inArgs)
         calTau = true;
     }
     if(calTau){
-        printf("The variance (tau) will been caculated\n");
+        printf("The variance (sigma) will been caculated\n");
     }else{
-        printf("The variance (tau) will not been caculated\n");
+        printf("The variance (sigma) will not been caculated\n");
     }
     
     if((index = GetValID(inArgs->priVars, specifyEquName)) < inArgs->priVars.size()){

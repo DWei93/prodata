@@ -111,7 +111,7 @@ void WriteTecplotNormalData(const Table_t &table, const string &file, double pre
     }
      
     out.close();
-    printf("Finsish writing output file %s\n", fn.c_str());    
+//  printf("Finsish writing output file %s\n", fn.c_str());    
     return;
 }
 
