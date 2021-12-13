@@ -1,6 +1,7 @@
 
 #include "Home.h"
 #include "Util.h"
+#include "ProDataIO.h"
 
 
 void SpecifyEquations1(Table_t &table)
@@ -442,18 +443,250 @@ void SpecifyEquations12(Table_t &table)
     }
     return;
 }
+
+void SpecifyEquations14(Table_t &table)
+{
+    int cep = GetColIDFromTable(table, "plaStn"); // units %
+    int cz = GetColIDFromTable(table, "Z"); // units %
+
+    int nxy = table.i*table.j;
+    printf("I=%d, J=%d, K=%d, nxy=%d\n",table.i, table.j, table.k, nxy);
+
+
+    Table_t auxTable;
+    auxTable.variables.resize(2);
+    auxTable.variables[0] = string("Z");
+    auxTable.variables[1] = string("ep");
+
+    auxTable.data.resize(table.k);
+    auxTable.i=table.k;
+    auxTable.j=1; auxTable.k=1; auxTable.F="point";
+    auxTable.solutionTime = table.solutionTime;
+    auxTable.T =  table.T;
+
+    for(auto i=0; i<auxTable.data.size(); i++){
+        auxTable.data[i].resize(2);
+        auxTable.data[i][0] = table.data[i*nxy][cz];
+        auxTable.data[i][1] = 0.0;
+        for(auto j=0;j<nxy;j++){
+            auxTable.data[i][1] += table.data[i*nxy+j][cep];
+        }
+    }
+#if 1
+    auxTable.data[0][1]  =(auxTable.data[1][1] +auxTable.data[0][1]+auxTable.data[40][1] )/3.0;
+    auxTable.data[41][1] =(auxTable.data[1][1] +auxTable.data[0][1]+auxTable.data[40][1] )/3.0;
+    auxTable.data[17][1] =(auxTable.data[16][1]+auxTable.data[17][1]+auxTable.data[18][1])/3.0;
+    auxTable.data[24][1] =(auxTable.data[23][1]+auxTable.data[24][1]+auxTable.data[25][1])/3.0;
+
+    auxTable.data.erase(auxTable.data.begin()+40);
+    auxTable.data.erase(auxTable.data.begin()+25);
+    auxTable.data.erase(auxTable.data.begin()+23);
+    auxTable.data.erase(auxTable.data.begin()+18);
+    auxTable.data.erase(auxTable.data.begin()+16);
+    auxTable.data.erase(auxTable.data.begin()+1);
+
+#else
+
+    auxTable.data[17][1] = (auxTable.data[16][1]+auxTable.data[17][1]+auxTable.data[18][1])/3.0;
+    auxTable.data.erase(auxTable.data.begin()+18);
+    auxTable.data.erase(auxTable.data.begin()+16);
+
+    auxTable.data[5][1] = auxTable.data[4][1]+auxTable.data[5][1]+auxTable.data[6][1];
+    auxTable.data[36][1] = auxTable.data[35][1]+auxTable.data[36][1]+auxTable.data[37][1];
+
+    auxTable.data.erase(auxTable.data.begin()+37);
+    auxTable.data.erase(auxTable.data.begin()+35);
+    auxTable.data.erase(auxTable.data.begin()+6);
+    auxTable.data.erase(auxTable.data.begin()+4);
+#endif
+
+    auxTable.i = int(auxTable.data.size());
+    string secLine, fileName, baseName("ep-"), pltName(".plt");
+    auto a = table.aux.find("id");
+    if(a!=table.aux.end()){
+        fileName = baseName+ a->second +pltName;
+        WriteTecplotNormalData(auxTable, fileName,  10, secLine, std::ios::out); 
+    }
+    return;
+}
+
+void SpecifyEquations15(Table_t &table)
+{
+        int     i, j;
+        real8   vec[3];
+
+        int colStress = GetColIDFromTable(table, "stress");
+
+        for(i=0; i<table.data.size(); i++){
+            table.data[i][colStress] *= 0.8791208791;
+        }
+
+        return;
+}
+
+void SpecifyEquations16(Table_t &table)
+{
+        int     i, j;
+        real8   vec[3];
+
+        int colmd_fs = GetColIDFromTable(table, "md_fs");
+        int colsfi = GetColIDFromTable(table, "sfi");
+        
+        double md=0.0, msf=0.408, bmag=0.2556;
+
+        for(i=0; i<table.data.size(); i++){
+            if(fabs(table.data[i][colsfi] - msf)<0.01){
+                if(md < table.data[i][colmd_fs]*0.2556){
+                    md =  table.data[i][colmd_fs]*bmag;
+                }
+            }
+        }
+        printf("DATA: %.2f\n",md);
+
+        return;
+}
+
+void SpecifyEquations17(Table_t &table)
+{
+        int     i, j;
+        real8   vec[3];
+
+        int cPst = GetColIDFromTable(table, "plastic_strain");
+        int cStress = GetColIDFromTable(table, "stress");
+
+        double minActStress = 1E5;
+        for(i=0; i<table.data.size(); i++){
+            if(table.data[i][cPst] > 0.05){
+                if(minActStress  > table.data[i][cStress]){
+                    minActStress = table.data[i][cStress];
+                }
+            }
+        }
+        printf("DATA: %.2f\n",minActStress);
+
+        return;
+}
+
+void SpecifyEquations18(Table_t &table)
+{
+        int     i, j;
+        real8   vec[3];
+
+        int ctime = GetColIDFromTable(table, "timenow");
+        int cseparation = GetColIDFromTable(table, "separation");
+        int cfile = GetColIDFromTable(table, "file");
+        int cp = GetColIDFromTable(table, "p");
+
+        int cDseparation = GetColIDFromTable(table, "D_separation");
+        int cDfile = GetColIDFromTable(table, "D_file");
+        int cDp = GetColIDFromTable(table, "D_p");
+
+        int cstr_zy = GetColIDFromTable(table, "str_zy");
+
+        Table_t auxTable;
+        InitTable(auxTable);
+        auxTable.variables.push_back("timenow_ns");
+        auxTable.variables.push_back("appStress_MPa");
+        auxTable.variables.push_back("displacement_b");
+        auxTable.variables.push_back("stdev_displacement_b");
+        
+        auxTable.variables.push_back("separation_b");
+        auxTable.variables.push_back("stdev_separation_b");
+
+        vector<double> p(auxTable.variables.size());
+        for(i=0; i<table.data.size(); i++){
+            p[0]=table.data[i][ctime];
+            p[1]=table.data[i][cstr_zy]/1E6;
+            p[2]=table.data[i][cp];
+            p[3]=table.data[i][cDp];
+            p[4]=table.data[i][cseparation];
+            p[5]=table.data[i][cDseparation];
+            auxTable.data.push_back(p);
+        }
+        auxTable.i = auxTable.data.size();
+
+        string secLine("");
+        WriteTecplotNormalData(auxTable, "loading-unloading-simplied.plt",  10, secLine, std::ios::out); 
+
+        return;
+}
+
+void SpecifyEquations19(Table_t &table)
+{
+        int     i, j;
+        real8   vec[3];
+
+        int ctime = GetColIDFromTable(table, "timenow");
+        int cseparation = GetColIDFromTable(table, "separation");
+        int cfile = GetColIDFromTable(table, "file");
+        int cp = GetColIDFromTable(table, "p");
+
+        int cDseparation = GetColIDFromTable(table, "D_separation");
+        int cDfile = GetColIDFromTable(table, "D_file");
+        int cDp = GetColIDFromTable(table, "D_p");
+
+        int cstr_zy = GetColIDFromTable(table, "str_zy");
+
+        Table_t auxTable;
+        InitTable(auxTable);
+
+
+        auxTable.variables.push_back("appliedStress_MPa");
+        
+        auxTable.variables.push_back("separation_b");
+        auxTable.variables.push_back("stdev_separation_b");
+
+        vector<double> p(auxTable.variables.size());
+        for(i=0; i<table.data.size(); i++){
+            p[0]=table.data[i][cfile]*10;
+            p[1]=table.data[i][cseparation];
+            p[2]=table.data[i][cDseparation];
+            auxTable.data.push_back(p);
+        }
+        auxTable.i = auxTable.data.size();
+
+        string secLine("");
+        WriteTecplotNormalData(auxTable, "simplified.plt",  10, secLine, std::ios::out); 
+
+        return;
+}
+#define MAX(a,b) ((a)>(b)?(a):(b))
+void SpecifyEquations20(Table_t &table)
+{
+        int     i, j;
+        int cPst = GetColIDFromTable(table, "plaStn");
+        int cdisDen = GetColIDFromTable(table, "disDen");
+        int cX = GetColIDFromTable(table, "X");
+        int cY = GetColIDFromTable(table, "Y");
+        int cZ = GetColIDFromTable(table, "Z");
+
+        double totPstn=0.0, box[3]={0,0,0}, totDisDen=0;
+        for(i=0; i<table.data.size(); i++){
+            totPstn += table.data[i][cPst];
+            totDisDen += table.data[i][cdisDen];
+            box[0] = MAX(2.0*table.data[i][cX], box[0]);
+            box[1] = MAX(2.0*table.data[i][cY], box[1]);
+            box[2] = MAX(2.0*table.data[i][cZ], box[2]);
+        }
+        double bMag=2.556E-10, vol=box[0]*box[1]*box[2];
+
+        printf("DATA: %g %g m^-2\n", totPstn/box[0]/box[1]/box[2]*100.0, totDisDen/vol/bMag/bMag);
+
+        return;
+}
 void SpecifyEquations(Table_t &table)
 {
         int     i, j;
 
-        SpecifyEquations11(table);
+        SpecifyEquations20(table);
 //      ClearRepetition(table);
     
         return;
 }
+
 #ifdef GSL
 #include <gsl/gsl_fit.h>
-bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard, real8 &thard, real8 &twindef, real8 &crss){
+bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard, real8 &thard, real8 &twindef, real8 &crss, bool &aveHard){
     int cStrain = GetColIDFromTable(table, "strain"); // units %
     int cStress = GetColIDFromTable(table, "stress"); // units MPa
     int cPst = GetColIDFromTable(table, "plastic_strain");
@@ -507,18 +740,21 @@ bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard,
     bool fit = (cFit<0)?true:false;
     printf("cFit = %d\n",cFit);
 
-    double critPst= 0.19, youngs0 = 123.275, youngs,critStn=0.201;
+    double critPst= 0.199, youngs0 = 123.275, youngs,critStn=0.201;
     int  critI,elaI=-1;
 
 #if 0
     critPst=0.002;
     critStn=0.1;
 #else
-    if(l_pst<0.2){
+    if(l_pst<0.05){
+        printf("warning: can not find yield stress, last (%d) pst=%.2f, cPst=%d \n", last, l_pst,cPst);
+        sigma = 0.0;
         return false;
     }
 #endif
-    for(i=0; i<last; i++){
+    aveHard = (l_pst > 2.0*critStn)?true:false;
+    for(i=0; i<last+1; i++){
         pst=table.data[i][cPst];
         if(pst>1.0E-3 && elaI==-1){elaI=i;}
         if(pst > critPst){
@@ -528,20 +764,22 @@ bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard,
             break;
         }
     }
-    if(last==i){
-        return false;
-    }
-    if(sf<0){
-        pointID -=1;
-        if(pointID>-1){
-            crss = sigma*schmid[pointID];
-            printf("point %d: %7.4e=%7.4e*%7.4e\n",pointID+1, crss, sigma, schmid[pointID]);
-        }else crss = 0.0;
-    }else{
+    twindef = 100.0*table.data[i][cTpst]/table.data[i][cPst];
+    if(last+1==i){
+        printf("Warning: plastic strain is small, but you can use it to define yield stress\n");
+        sigma = l_stress;
         crss = sf*sigma;
-        printf("crss=%f*%f=%f\n",sf,sigma,crss);
+        return true;
+    }else{
+        printf("i=%d\n sigma=%.2f MPa\n",i, sigma);
     }
-    twindef = 100.0*table.data[last][cTpst]/table.data[last][cPst];
+
+    for(i=0; i<last; i++){
+        pst=table.data[i][cPst];
+        if(pst > critPst){
+            break;
+        }
+    }
     
     int nPoints = last-i+1;
     double *stnList, *strList, *tpstList, *eStnList, *eStrList; 
@@ -573,13 +811,26 @@ bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard,
 
     gsl_fit_linear(stnList,1,strList,1,nPoints,&c0,&c1,&cov00,&cov01,&cov11,&chisq);
     hard = 0.1*c1; c00=c0; c11=c1;
-//  sigma = c0+c1*critStn;
+
+//  if(l_pst > 0.5){
+//      sigma = c0+c1*critStn;
+//  }
     
     if(cTpst>-1){
         gsl_fit_linear(stnList,1,tpstList,1,nPoints,&c0,&c1,&cov00,&cov01,&cov11,&chisq);
         thard = 0.1*c1;
     }else thard = 0.0;
 
+    if(sf<0){
+        pointID -=1;
+        if(pointID>-1){
+            crss = sigma*schmid[pointID];
+            printf("point %d: %7.4e=%7.4e*%7.4e\n",pointID+1, crss, sigma, schmid[pointID]);
+        }else crss = 0.0;
+    }else{
+        crss = sf*sigma;
+        printf("crss=%f*%f=%f\n",sf,sigma,crss);
+    }
     
 #if 0
     printf ("# best fit: Y = %g + %g X\n", c0, c1);
@@ -622,3 +873,213 @@ bool Analysis(Table_t &table, real8 &crss){
     return true;
 }
 #endif
+
+
+
+void InitialStructure(InArgs_t *inArgs){
+    typedef enum{
+        cfrlen = 0,
+        cdpb,
+        cdfs1,
+        cdtb1,
+        cdtb2,
+        csi,
+        cso,
+        cstd1,
+        cstd2,
+        careai,
+        careao,
+        cbx,
+        cby,
+        cbz,
+        cnx,
+        cny,
+        cnz,
+        ccbetafr,
+        cstb,
+        cdfs2,
+        ccbetafs1,
+        ccbetafs2,
+        ctbdir,
+        ccbetatb1,
+        ccbetatb2,
+        ctauPin1,
+        ctauPin2,
+        cmathematica,
+        ctau0,
+        ctauc,
+        csigmac,
+        cpeneType,
+        crc,
+        cnPileUps,
+        cpileLength,
+        ctauBack,
+        csigmay,
+        clinter,
+        clpo,
+        cmax
+    }InitaiVals;
+
+    if(inArgs->inpFiles.size() == 0){
+        Fatal("There is no input file.");
+    }
+    vector<Table_t> tables(inArgs->inpFiles.size());
+    int i;
+    Table_t auxTable;
+    auxTable.variables.push_back("index");
+    auxTable.variables.push_back("tauc");
+    auxTable.variables.push_back("frlen");
+    auxTable.variables.push_back("dfs");
+    auxTable.variables.push_back("peneType");
+    auxTable.variables.push_back("nPileUps");
+    auxTable.variables.push_back("pileLength");
+    auxTable.variables.push_back("tauBack");
+    auxTable.variables.push_back("nActiveSrcs");
+    auxTable.variables.push_back("tauPin");
+    
+    vector<double> dPoint(auxTable.variables.size());
+    vector<double> ave(dPoint.size()), sigma(dPoint.size());
+    double num=0.0, sfMax=-1, bMag=0.2556;
+    int index;
+
+    if((index = GetValID(inArgs->priVars, "sf")) < inArgs->priVars.size()){
+        sfMax = atof(inArgs->priVars[index].vals[0].c_str());
+    }
+    for(i=0;i<dPoint.size();i++){
+        ave[i]=0.0; sigma[i]=0.0;
+    }
+
+//#pragma omp parallel for 
+    for(i=0; i<inArgs->inpFiles.size(); i++){
+        string secLine;
+        bool readState;
+//        #pragma omp critical
+        {
+            readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
+        }
+        
+        if(readState){
+            vector<vector<double> > &data = tables[i].data; 
+            dPoint[0] = double(i);
+            if(sfMax<=0){
+                for(int j=0; j<data.size(); j++){
+                    sfMax = sfMax<data[j][csi]?data[j][csi]:sfMax;
+                }
+            }
+            dPoint[1] = data[0][ctauc];
+            dPoint[2] = data[0][cfrlen]*bMag; 
+            dPoint[3] = 0;
+            dPoint[4] = data[0][cpeneType];
+            dPoint[5] = data[0][cnPileUps];
+            dPoint[6] = data[0][cpileLength]*bMag;
+            dPoint[7] = data[0][ctauBack];
+            dPoint[8] = 0;
+            
+            // Find the most easily activated colinear reactions
+            dPoint[9] = (data[0][ctauPin1]<data[0][ctauPin2])?data[0][ctauPin1]:data[0][ctauPin2];
+#if 1
+            // If src is tructated, the do not consider colinear reaction
+            if(data[0][cmathematica]>0)dPoint[9] = dPoint[1];
+            if(data[0][ctauc] - data[0][ctau0] >0.1){dPoint[9]  = dPoint[1];}
+#endif
+            // If pinning stress is too small or higher than crss, skip it
+            if(dPoint[9] < 0.1 || dPoint[9]>dPoint[1])dPoint[9] = dPoint[1];
+
+            for(int j=0; j<data.size(); j++){
+                if(fabs(data[j][csi] -sfMax) < 0.02) {
+                    dPoint[8]++;
+                    if(data[j][cdfs1] > dPoint[3])dPoint[3]=data[j][cdfs1];
+                    if(data[j][cdfs2] > dPoint[3])dPoint[3]=data[j][cdfs2];
+                }
+            }
+            dPoint[3] *= bMag;
+            auxTable.data.push_back(dPoint);
+            for(int j=0;j<dPoint.size();j++){
+                ave[j]+=dPoint[j];
+                printf("%g ",dPoint[j]);
+            }
+            printf("\n");
+            num++;
+        }
+    }
+    auxTable.i = auxTable.data.size();
+   
+    for(int j=0;j<dPoint.size();j++)ave[j]/=num;
+    for(i=0;i<auxTable.data.size();i++){
+        for(int j=0; j<dPoint.size(); j++){
+            sigma[j] += pow(auxTable.data[i][j]-ave[j], 2);
+        }
+    }
+    for(int j=0; j<dPoint.size(); j++){
+        if(num>1.1){
+            sigma[j] = sqrt(sigma[j]/(num-1));
+        }else{
+            sigma[j] = 0.0;
+        }
+    }
+    printf("DAT:     number tau_c(MPa), frlen(nm), dfs(nm), peneType nPileUps plieLength(nm) tauBack(MPa) nActiveSrcs tauPin\n");
+    printf("AVE: ");
+    for(int j=0; j<dPoint.size(); j++)printf(" %9.2f", ave[j]);
+    printf("\nVAR: ");
+    for(int j=0; j<dPoint.size(); j++)printf(" %9.2f", sigma[j]);
+    printf("\n");
+
+    return;
+}
+
+void GNDAnalysis(InArgs_t *inArgs){
+    int i, j, k;
+    string secLine(""), outfile;
+    bool readState = false;
+    std::size_t iPos;
+    std::vector<Table_t> tables(inArgs->inpFiles.size());
+
+    if(inArgs->inpFiles.size()>0){
+        readState = ReadTecplotNormalData(inArgs->inpFiles[0], tables[0], secLine);
+    }
+    if(readState==false){
+        Fatal("can not find first gnd files.");
+    }
+
+    for(i=1; i<inArgs->inpFiles.size(); i++){
+        readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
+        if(!readState)continue;
+
+        if(tables[i].variables.size()!= tables[0].variables.size()
+           || tables[i].variables.size()<=2 
+           || tables[i].data[0].size() != tables[0].data[0].size()){
+            Fatal("File %s: varible sizes is wrong", inArgs->inpFiles[i].c_str());
+        }
+
+        for(j=0; j<tables[i].data.size(); j++){
+            for(k=2; k<tables[i].data[j].size(); k++){
+                tables[i].data[j][k] -= tables[0].data[j][k];
+            }
+        }
+
+        iPos = inArgs->inpFiles[i].find_last_of("/\\");
+        outfile = "delta-" + inArgs->inpFiles[i].substr(iPos+1);
+        printf("Output delta gnd file %s:\n", outfile.c_str());
+        WriteTecplotNormalData(tables[i], outfile, 10, secLine, std::ios::out);
+    }
+    return;
+}
+
+void CustomHandleTecplotData(InArgs_t *inArgs){
+    int     index;
+    string  functionName("func");
+
+    if((index = GetValID(inArgs->priVars, functionName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals[0].find("InitialStructure") != string::npos){
+            InitialStructure(inArgs);
+            return;
+        }else if(inArgs->priVars[index].vals[0].find("GNDAnalysis") != string::npos){
+            GNDAnalysis(inArgs);
+        }else{
+            Fatal("Can not support Analysis function %s", inArgs->priVars[index].vals[0].c_str());
+        }
+    }
+
+    return;
+}
+

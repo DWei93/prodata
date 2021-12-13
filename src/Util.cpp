@@ -438,6 +438,7 @@ void HandleTecplotData(InArgs_t *inArgs)
     bool    readState;
     string  secLine, noBackupName = ("nobackup"), backupFile, sufBack = (".bak");
     string  pointIDName=("pointID"), sfName("sf");
+    string  functionName("func"), ssFunction("stress-strain");
     char    name[256];
     bool    backup = 1;
     double  sf=-1.0;
@@ -463,6 +464,14 @@ void HandleTecplotData(InArgs_t *inArgs)
 
     if(inArgs->inpFiles.size() == 0){
         Fatal("There is no input file.");
+    }
+
+    if((index = GetValID(inArgs->priVars, functionName)) < inArgs->priVars.size()){
+        if(inArgs->priVars[index].vals[0].find(ssFunction) == string::npos){
+            printf("Using customize function to handle tecplot data: \n");
+            CustomHandleTecplotData(inArgs);
+        }
+        return;
     }
 
     if((index = GetValID(inArgs->priVars, sfName)) < inArgs->priVars.size()){
@@ -502,7 +511,9 @@ void HandleTecplotData(InArgs_t *inArgs)
 #else
     vector<vector<real8> > dl;
     vector<real8> d(10);
-    real8 sigma, twindef, hard, thard, crss;
+    real8 sigma, twindef, hard, thard, crss, nCacHard=0.0;
+    bool aveHard;
+    vector <bool> cacHard;;
     for(i=0; i<inArgs->inpFiles.size(); i++){
         readState = ReadTecplotNormalData(inArgs->inpFiles[i], tables[i], secLine);
         if(!readState)continue;
@@ -523,9 +534,15 @@ void HandleTecplotData(InArgs_t *inArgs)
             }
         }
         
-        if(true==Analysis(pointID, sf, tables[i], sigma, hard, thard, twindef, crss)){
+        if(true==Analysis(pointID, sf, tables[i], sigma, hard, thard, twindef, crss, aveHard)){
             d[0]=sigma; d[1]=hard; d[2]=thard; d[3]=twindef; d[4]=0; d[5]=0; d[6]=0; d[7]=0; d[8]=crss; d[9]=0;
             dl.push_back(d);
+            if(aveHard){
+                cacHard.push_back(true);
+                nCacHard += 1.0;
+            }else{
+                cacHard.push_back(false);
+            }
         }else{
             printf("FAIELD: %s \n", inArgs->inpFiles[i].c_str());
         }
@@ -537,17 +554,21 @@ void HandleTecplotData(InArgs_t *inArgs)
     for(int j=0; j<10; j++)d[j]=0; real8 num = double(dl.size());
     for(int j=0; j<dl.size(); j++){
         d[0] += (dl[j][0]/num);
-        d[1] += (dl[j][1]/num);
-        d[2] += (dl[j][2]/num);
-        d[3] += (dl[j][3]/num);
         d[8] += (dl[j][8]/num);
+        if(cacHard[j]){
+            d[1] += (dl[j][1]/nCacHard);
+            d[2] += (dl[j][2]/nCacHard);
+        }
+        d[3] += (dl[j][3]/num);
     }
 
-    if(num>1){
+    if(num>1 ){
         for(int j=0;j<dl.size();j++){
             d[4]+=pow(dl[j][0]-d[0],2)/(num-1.0);
-            d[5]+=pow(dl[j][1]-d[1],2)/(num-1.0);
-            d[6]+=pow(dl[j][2]-d[2],2)/(num-1.0);
+            if(cacHard[j] && nCacHard >1.0){
+                d[5]+=pow(dl[j][1]-d[1],2)/(nCacHard-1.0);
+                d[6]+=pow(dl[j][2]-d[2],2)/(nCacHard-1.0);
+            }
             d[7]+=pow(dl[j][3]-d[3],2)/(num-1.0);
             d[9]+=pow(dl[j][8]-d[8],2)/(num-1.0);
         }

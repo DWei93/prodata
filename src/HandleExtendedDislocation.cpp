@@ -461,7 +461,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
         printf("    -dmargin:           margin of surface atoms (disorder atoms)\n");
         printf("    -dpara:             <cut-off length> <resolution>\n");
         printf("    -ddvar:             control variable\n");
-        printf("    -p0:                initial position of the extended dislocation\n");
+        printf("    -dp0:                initial position of the extended dislocation\n");
         printf("    -ddir:              dislocation direction\n");
         printf("    -dnums:             range number of partial dislocation core atoms\n");
         printf("    -dseparation:       range separation of the extended dislocations\n");
@@ -576,7 +576,7 @@ void HandleExtendedDislocation_MD(InArgs_t *inArgs)
             WriteDumpFile(inArgs->outFiles[file], dum); 
         }
 
-            continue;
+        continue;
         for(i=0; i<3; i++){
             boundMin[i] = dum.box[i][0];
             boundMax[i] = dum.box[i][1];

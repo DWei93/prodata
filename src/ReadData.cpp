@@ -64,8 +64,9 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
     char    *p2;
     int     line=0;
     while(1){
-        line++;
         rt = fgets(str, MAXLINELENGTH, fp);
+        if(line==0 && str[0] == '\0')return 0;
+        line++;
         if(line==2)secLine=str;
         if(feof(fp))break;
         if(str == "\n" || str == NULL)continue;
@@ -134,12 +135,12 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                 char strBak[MAXLINELENGTH];
                 sprintf(strBak, "%s", str);
                 i = 0;
-                token = strtok(str, " \n");
+                token = strtok(str, " \n\t");
                 if(token != NULL){
                     snprintf(name, sizeof(name), "v%d", i); 
                     table.variables.push_back(name);
                     
-                    while((token = strtok(NULL, " \n")) != NULL){
+                    while((token = strtok(NULL, " \n\t")) != NULL){
                         i++;
                         snprintf(name, sizeof(name), "v%d", i); 
                         table.variables.push_back(name);
@@ -160,9 +161,9 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
             table.data.resize(currSize+numPoints);
             for(i=currSize; i<table.data.size() && !feof(fp); i++){
                 table.data[i].resize(table.variables.size());
-                table.data[i][0] = atof(strtok(str, " ")); 
+                table.data[i][0] = atof(strtok(str, " \t")); 
                 for(j=1; j<table.variables.size(); j++){
-                    table.data[i][j] = atof(strtok(NULL, " \n"));
+                    table.data[i][j] = atof(strtok(NULL, " \n\t"));
                 }
                 rt = fgets(str, MAXLINELENGTH, fp);
                 rowNow++;
@@ -174,14 +175,18 @@ int ReadTecplotNormalData(string &file, Table_t &table, string &secLine)
                 table.data.resize(currSize);
                 for(int row=0;row<100;row++)table.data[rowNow+row].resize(table.variables.size());
             }
-            p = strtok(str, " ");
+            p = strtok(str, " \t");
             if(p == nullptr)Fatal("Read error in %s at row %d",file.c_str(),currSize);
             table.data[rowNow][0] = atof(p); 
             for(j=1; j<table.variables.size(); j++){
-                p = strtok(NULL, " ");
+                p = strtok(NULL, " \t");
                 if(p == nullptr)Fatal("Read error in %s at row %d",file.c_str(),rowNow+1);
                 table.data[rowNow][j] = atof(p);
-                if(!Numerical(table.data[rowNow][j]))Fatal("Read error in %s at row %d",file.c_str(),rowNow+1);
+                if(!Numerical(table.data[rowNow][j])){
+                    if(isnan(table.data[rowNow][j]))table.data[rowNow][j]=0.0; 
+                    else 
+                    Fatal("Read error in %s at row %d, not numerical",file.c_str(),rowNow+1);
+                }
             }
             rowNow++;
         }

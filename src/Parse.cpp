@@ -13,7 +13,6 @@ using namespace std;
 
 vector<string> GetFiles(const string &file) 
 {
-    int     iPos;
     DIR     *dir;
     char    basePath[256], *getcwdReturn;
 
@@ -24,7 +23,7 @@ vector<string> GetFiles(const string &file)
     memset(basePath, '\0', sizeof(basePath));
     getcwdReturn = getcwd(basePath, sizeof(basePath));
 
-    iPos = f.find_last_of('/');
+    std::size_t iPos = f.find_last_of("/\\");
     if(iPos == string::npos){
         fdir = curDir;
         fname = f;
@@ -35,7 +34,7 @@ vector<string> GetFiles(const string &file)
     std::regex regex(fname);
     
     if((dir = opendir(fdir.c_str())) == NULL){
-        Fatal("Can not open dir %s", fdir.c_str());
+        Fatal("Can not open dir %s, file=%s", fdir.c_str(), file.c_str());
     }
 
     while((ptr = readdir(dir)) != NULL){

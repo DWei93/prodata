@@ -52,8 +52,9 @@ int DataType(const string &str);
 void SpecifyEquations_PLTDATA(InArgs_t *inArgs);
 void HandleTecplotData(InArgs_t *inArgs);
 void SpecifyEquations(Table_t &table);
-bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard, real8 &thard ,real8 &twindef, real8 &crss);
+bool Analysis(int pointID, double sf, Table_t &table, real8 &sigma, real8 &hard, real8 &thard, real8 &twindef, real8 &crss, bool &aveHard);
 bool Analysis(Table_t &table, real8 &crss);
+void CustomHandleTecplotData(InArgs_t *inArgs);
 void FormatVector(real8 vec[3], const char *msg);
 
 void InitList(LineList_t &list);
